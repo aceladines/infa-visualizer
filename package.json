@@ -1,0 +1,21 @@
+{
+  "name": "infa-visualizer",
+  "version": "1.0.0",
+  "description": "Informatica PowerCenter XML Workflow Visualizer & Field Mapper",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "^16.2.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^15.1.0"
+  }
+}
