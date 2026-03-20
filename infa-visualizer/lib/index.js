@@ -2,6 +2,7 @@ export { parseInformaticaXML } from "./parseXml";
 export { buildFieldMappings } from "./buildFieldMappings";
 export {
   buildFlowGraph,
+  buildSessionDependencies,
   assignLayers,
   computeLayout,
 } from "./buildFlowGraph";
