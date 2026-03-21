@@ -51,19 +51,19 @@ export default function FileUpload({ onFileLoad, error }) {
           width: "100%",
           maxWidth: 520,
           padding: "60px 40px",
-          border: `2px dashed ${dragOver ? "#60a5fa" : "#1e1e2e"}`,
+          border: `2px dashed ${dragOver ? "#60a5fa" : "var(--border-primary)"}`,
           borderRadius: 16,
-          background: dragOver ? "#0a0a1a" : "#08080d",
+          background: dragOver ? "var(--bg-surface-hover)" : "var(--bg-secondary)",
           textAlign: "center",
           cursor: "pointer",
           transition: "all 0.3s",
         }}
       >
-        <div style={{ color: dragOver ? "#60a5fa" : "#2a2a3e", marginBottom: 16 }}>
+        <div style={{ color: dragOver ? "#60a5fa" : "var(--border-secondary)", marginBottom: 16 }}>
           <UploadIcon />
         </div>
         <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>Drop Informatica XML here</div>
-        <div style={{ fontSize: 12, color: "#4a4a6a", fontFamily: FONT_MONO, lineHeight: 1.6 }}>
+        <div style={{ fontSize: 12, color: "var(--text-muted)", fontFamily: FONT_MONO, lineHeight: 1.6 }}>
           Supports PowerCenter workflow exports
           <br />
           (.xml files from Repository Manager or pmrep)

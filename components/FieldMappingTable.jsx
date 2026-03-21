@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { FONT_MONO } from "@/lib/constants";
+import { FONT_MONO, getTypeColors } from "@/lib/constants";
+import { useTheme } from "@/lib/ThemeContext";
 import { DBIcon } from "@/components/icons";
 import { SortArrow } from "@/components/ui";
 
@@ -11,6 +12,8 @@ export default function FieldMappingTable({ data, selectedMapping }) {
   const [sortDir, setSortDir] = useState("asc");
   const [collapsed, setCollapsed] = useState({});
   const [expandedRows, setExpandedRows] = useState({});
+  const { theme } = useTheme();
+  const typeColors = getTypeColors(theme);
 
   const filtered = useMemo(() => {
     let fm = data.fieldMappings;
@@ -104,10 +107,10 @@ export default function FieldMappingTable({ data, selectedMapping }) {
             flex: 1,
             minWidth: 200,
             padding: "10px 16px",
-            background: "#0a0a0f",
-            border: "1px solid #1e1e2e",
+            background: "var(--bg-input)",
+            border: "1px solid var(--border-primary)",
             borderRadius: 8,
-            color: "#e2e8f0",
+            color: "var(--text-primary)",
             fontSize: 13,
             fontFamily: FONT_MONO,
             outline: "none",
@@ -116,10 +119,10 @@ export default function FieldMappingTable({ data, selectedMapping }) {
         <div
           style={{
             padding: "10px 16px",
-            background: "#0a0a0f",
-            border: "1px solid #1e1e2e",
+            background: "var(--bg-tertiary)",
+            border: "1px solid var(--border-primary)",
             borderRadius: 8,
-            color: "#6b7280",
+            color: "var(--text-secondary)",
             fontSize: 12,
             fontFamily: FONT_MONO,
             display: "flex",
@@ -133,10 +136,10 @@ export default function FieldMappingTable({ data, selectedMapping }) {
             onClick={toggleAll}
             style={{
               padding: "10px 16px",
-              background: "#0a0a0f",
-              border: "1px solid #1e1e2e",
+              background: "var(--bg-tertiary)",
+              border: "1px solid var(--border-primary)",
               borderRadius: 8,
-              color: "#6b7280",
+              color: "var(--text-secondary)",
               fontSize: 11,
               fontFamily: FONT_MONO,
               cursor: "pointer",
@@ -153,7 +156,7 @@ export default function FieldMappingTable({ data, selectedMapping }) {
 
       {/* Results */}
       {grouped.length === 0 ? (
-        <div style={{ padding: 40, textAlign: "center", color: "#4a4a6a", fontFamily: FONT_MONO, fontSize: 13 }}>
+        <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)", fontFamily: FONT_MONO, fontSize: 13 }}>
           {data.fieldMappings.length === 0
             ? "No field-level connectors found in this export. The XML may only contain workflow-level definitions."
             : "No matches found"}
@@ -170,16 +173,16 @@ export default function FieldMappingTable({ data, selectedMapping }) {
                 gap: 8,
                 flexWrap: "wrap",
                 padding: "12px 16px",
-                background: "linear-gradient(135deg, #0a2e1f, #1a1a2e, #1e1434)",
+                background: `linear-gradient(135deg, ${typeColors.source.bg}, ${typeColors.transform.bg}, ${typeColors.target.bg})`,
                 borderRadius: collapsed[gi] ? 10 : "10px 10px 0 0",
-                border: "1px solid #1e1e2e",
-                borderBottom: collapsed[gi] ? "1px solid #1e1e2e" : "none",
+                border: "1px solid var(--border-primary)",
+                borderBottom: collapsed[gi] ? "1px solid var(--border-primary)" : "none",
                 cursor: "pointer",
                 userSelect: "none",
                 transition: "border-radius 0.15s",
               }}
             >
-              <span style={{ color: "#4a4a6a", fontSize: 10, width: 14, textAlign: "center", flexShrink: 0 }}>
+              <span style={{ color: "var(--text-muted)", fontSize: 10, width: 14, textAlign: "center", flexShrink: 0 }}>
                 {collapsed[gi] ? "▶" : "▼"}
               </span>
               <TableRef
@@ -187,29 +190,29 @@ export default function FieldMappingTable({ data, selectedMapping }) {
                 name={group.source}
                 db={group.sourceDB}
                 owner={group.sourceOwner}
-                nameColor="#6ee7b7"
-                iconColor="#10b981"
-                dbBg="#065f46"
-                ownerBg="#064e3b"
+                nameColor={typeColors.source.text}
+                iconColor={typeColors.source.border}
+                dbBg={typeColors.source.badge}
+                ownerBg={typeColors.source.sub}
               />
-              <span style={{ color: "#4a4a6a", fontSize: 16 }}>→</span>
+              <span style={{ color: "var(--text-muted)", fontSize: 16 }}>→</span>
               <TableRef
                 icon={<DBIcon />}
                 name={group.target}
                 db={group.targetDB}
                 owner={group.targetOwner}
-                nameColor="#c4b5fd"
-                iconColor="#a78bfa"
-                dbBg="#4c1d95"
-                ownerBg="#3b0764"
+                nameColor={typeColors.target.text}
+                iconColor={typeColors.target.border}
+                dbBg={typeColors.target.badge}
+                ownerBg={typeColors.target.sub}
               />
               <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
                 {group.mappingName && (
                   <span
                     style={{
                       fontSize: 8,
-                      background: "#1e1e2e",
-                      color: "#6b7280",
+                      background: "var(--border-primary)",
+                      color: "var(--text-secondary)",
                       padding: "2px 6px",
                       borderRadius: 3,
                       fontFamily: FONT_MONO,
@@ -218,17 +221,17 @@ export default function FieldMappingTable({ data, selectedMapping }) {
                     {group.mappingName}
                   </span>
                 )}
-                <span style={{ color: "#4a4a6a", fontSize: 11, fontFamily: FONT_MONO }}>
+                <span style={{ color: "var(--text-muted)", fontSize: 11, fontFamily: FONT_MONO }}>
                   {group.fields.length} field{group.fields.length !== 1 ? "s" : ""}
                 </span>
               </div>
             </div>
 
             {/* Fields table */}
-            {!collapsed[gi] && <div style={{ overflow: "auto", border: "1px solid #1e1e2e", borderRadius: "0 0 10px 10px" }}>
+            {!collapsed[gi] && <div style={{ overflow: "auto", border: "1px solid var(--border-primary)", borderRadius: "0 0 10px 10px" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontFamily: FONT_MONO }}>
                 <thead>
-                  <tr style={{ background: "#0d0d15" }}>
+                  <tr style={{ background: "var(--bg-table-header)" }}>
                     {columns.map((col) => (
                       <th
                         key={col.key}
@@ -236,9 +239,9 @@ export default function FieldMappingTable({ data, selectedMapping }) {
                         style={{
                           padding: "10px 14px",
                           textAlign: "left",
-                          color: "#6b7280",
+                          color: "var(--text-secondary)",
                           fontWeight: 500,
-                          borderBottom: "1px solid #1e1e2e",
+                          borderBottom: "1px solid var(--border-primary)",
                           cursor: "pointer",
                           userSelect: "none",
                           fontSize: 10,
@@ -262,29 +265,29 @@ export default function FieldMappingTable({ data, selectedMapping }) {
                       <React.Fragment key={fi}>
                         <tr
                           style={{
-                            background: fi % 2 === 0 ? "#08080d" : "#0b0b12",
+                            background: fi % 2 === 0 ? "var(--bg-table-even)" : "var(--bg-table-odd)",
                             transition: "background 0.15s",
                             cursor: hasSteps ? "pointer" : "default",
                           }}
-                          onMouseEnter={(e) => (e.currentTarget.style.background = "#10101a")}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-surface-hover)")}
                           onMouseLeave={(e) =>
-                            (e.currentTarget.style.background = fi % 2 === 0 ? "#08080d" : "#0b0b12")
+                            (e.currentTarget.style.background = fi % 2 === 0 ? "var(--bg-table-even)" : "var(--bg-table-odd)")
                           }
                           onClick={() => {
                             if (hasSteps) setExpandedRows((prev) => ({ ...prev, [rowKey]: !prev[rowKey] }));
                           }}
                         >
-                          <td style={{ padding: "8px 14px", color: "#6ee7b7", borderBottom: isExpanded ? "none" : "1px solid #12121f" }}>
+                          <td style={{ padding: "8px 14px", color: typeColors.source.text, borderBottom: isExpanded ? "none" : "1px solid var(--border-subtle)" }}>
                             {fm.sourceField}
                           </td>
-                          <td style={{ padding: "8px 14px", color: "#c4b5fd", borderBottom: isExpanded ? "none" : "1px solid #12121f" }}>
+                          <td style={{ padding: "8px 14px", color: typeColors.target.text, borderBottom: isExpanded ? "none" : "1px solid var(--border-subtle)" }}>
                             {fm.targetField}
                           </td>
                           <td
                             style={{
                               padding: "8px 14px",
-                              color: "#60a5fa",
-                              borderBottom: isExpanded ? "none" : "1px solid #12121f",
+                              color: typeColors.transform.text,
+                              borderBottom: isExpanded ? "none" : "1px solid var(--border-subtle)",
                               opacity: fm.transformation === "Direct" ? 0.4 : 1,
                             }}
                           >
@@ -308,20 +311,20 @@ export default function FieldMappingTable({ data, selectedMapping }) {
                                 </span>
                               )}
                               {hasSteps && (
-                                <span style={{ color: "#4a4a6a", fontSize: 10, marginLeft: "auto" }}>
+                                <span style={{ color: "var(--text-muted)", fontSize: 10, marginLeft: "auto" }}>
                                   {isExpanded ? "▲" : "▼"}
                                 </span>
                               )}
                             </div>
                           </td>
-                          <td style={{ padding: "8px 14px", borderBottom: isExpanded ? "none" : "1px solid #12121f" }}>
+                          <td style={{ padding: "8px 14px", borderBottom: isExpanded ? "none" : "1px solid var(--border-subtle)" }}>
                             <LineageBadge type={fm.lineageType} />
                           </td>
                         </tr>
                         {isExpanded && (
                           <tr>
-                            <td colSpan={4} style={{ padding: 0, borderBottom: "1px solid #12121f" }}>
-                              <TransformationPipeline steps={fm.transformationSteps} sourceField={fm.sourceField} targetField={fm.targetField} />
+                            <td colSpan={4} style={{ padding: 0, borderBottom: "1px solid var(--border-subtle)" }}>
+                              <TransformationPipeline steps={fm.transformationSteps} sourceField={fm.sourceField} targetField={fm.targetField} theme={theme} typeColors={typeColors} />
                             </td>
                           </tr>
                         )}
@@ -341,7 +344,11 @@ export default function FieldMappingTable({ data, selectedMapping }) {
 /** @private Lineage type badge colors */
 const LINEAGE_COLORS = {
   DIRECT_PASS_THROUGH: { label: "PASS", color: "#6ee7b7", bg: "#065f46" },
-  DERIVED_EXPRESSION: { label: "EXPR", color: "#f59e0b", bg: "#78350f" },
+  EXPRESSION_DERIVED: { label: "EXPR", color: "#f59e0b", bg: "#78350f" },
+  DERIVED_EXPRESSION: { label: "EXPR", color: "#f59e0b", bg: "#78350f" }, // legacy alias
+  LOOKUP_RETURN: { label: "LKP", color: "#93c5fd", bg: "#1e3a5f" },
+  LOOKUP_DERIVED: { label: "LKP+", color: "#60a5fa", bg: "#1e3a5f" },
+  MAPLET_OUTPUT: { label: "MPLT", color: "#99f6e4", bg: "#115e59" },
   PARAMETER_DRIVEN: { label: "$", color: "#c084fc", bg: "#581c87" },
   CONSTANT: { label: "CONST", color: "#fcd34d", bg: "#713f12" },
   SEQUENCE_GENERATED: { label: "SEQ", color: "#60a5fa", bg: "#1e3a5f" },
@@ -397,16 +404,16 @@ function getXformLabel(type) {
 }
 
 /** @private Highlight Informatica expression syntax */
-function ExpressionDisplay({ expression }) {
-  if (!expression) return <span style={{ color: "#4a4a6a", fontStyle: "italic" }}>pass-through</span>;
+function ExpressionDisplay({ expression, theme }) {
+  if (!expression) return <span style={{ color: "var(--text-muted)", fontStyle: "italic" }}>pass-through</span>;
 
   // Check if it's just a field reference (no transformation logic)
   const isPassThrough = /^[A-Za-z_][A-Za-z0-9_]*$/.test(expression.trim());
   if (isPassThrough) {
     return (
-      <span style={{ color: "#6b7280" }}>
-        <span style={{ color: "#6ee7b7" }}>{expression}</span>
-        <span style={{ fontSize: 9, marginLeft: 6, color: "#4a4a6a", fontStyle: "italic" }}>(pass-through)</span>
+      <span style={{ color: "var(--text-secondary)" }}>
+        <span style={{ color: theme === "light" ? "#047857" : "#6ee7b7" }}>{expression}</span>
+        <span style={{ fontSize: 9, marginLeft: 6, color: "var(--text-muted)", fontStyle: "italic" }}>(pass-through)</span>
       </span>
     );
   }
@@ -420,7 +427,6 @@ function ExpressionDisplay({ expression }) {
   // Build tokens array
   const tokens = [];
   let remaining = expression;
-  let pos = 0;
 
   while (remaining.length > 0) {
     let earliest = null;
@@ -455,18 +461,14 @@ function ExpressionDisplay({ expression }) {
     remaining = remaining.slice(earliest + earliestMatch.length);
   }
 
-  const colorMap = {
-    func: "#c084fc",
-    string: "#fcd34d",
-    number: "#6ee7b7",
-    op: "#f59e0b",
-    text: "#e2e8f0",
-  };
+  const colorMap = theme === "light"
+    ? { func: "#7c3aed", string: "#b45309", number: "#047857", op: "#d97706", text: "#0f172a" }
+    : { func: "#c084fc", string: "#fcd34d", number: "#6ee7b7", op: "#f59e0b", text: "#e2e8f0" };
 
   return (
     <span>
       {tokens.map((t, i) => (
-        <span key={i} style={{ color: colorMap[t.type] || "#e2e8f0", fontWeight: t.type === "func" ? 600 : 400 }}>
+        <span key={i} style={{ color: colorMap[t.type] || colorMap.text, fontWeight: t.type === "func" ? 600 : 400 }}>
           {t.value}
         </span>
       ))}
@@ -475,18 +477,18 @@ function ExpressionDisplay({ expression }) {
 }
 
 /** @private Transformation pipeline visualization for expanded rows */
-function TransformationPipeline({ steps, sourceField, targetField }) {
+function TransformationPipeline({ steps, sourceField, targetField, theme, typeColors }) {
   if (!steps || steps.length === 0) return null;
 
   return (
-    <div style={{ padding: "12px 14px 14px", background: "#06060b" }}>
+    <div style={{ padding: "12px 14px 14px", background: "var(--bg-primary)" }}>
       {/* Source start */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
         <div style={{ width: 18, display: "flex", flexDirection: "column", alignItems: "center" }}>
           <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#10b981", boxShadow: "0 0 6px #10b98166" }} />
         </div>
-        <span style={{ fontSize: 10, color: "#6ee7b7", fontFamily: FONT_MONO }}>{sourceField}</span>
-        <span style={{ fontSize: 8, color: "#4a4a6a", fontFamily: FONT_MONO }}>SOURCE</span>
+        <span style={{ fontSize: 10, color: typeColors.source.text, fontFamily: FONT_MONO }}>{sourceField}</span>
+        <span style={{ fontSize: 8, color: "var(--text-muted)", fontFamily: FONT_MONO }}>SOURCE</span>
       </div>
 
       {/* Steps */}
@@ -498,7 +500,7 @@ function TransformationPipeline({ steps, sourceField, targetField }) {
             {/* Connector line */}
             <div style={{ display: "flex", alignItems: "stretch", gap: 8 }}>
               <div style={{ width: 18, display: "flex", justifyContent: "center" }}>
-                <div style={{ width: 1, height: 16, background: "#1e1e2e" }} />
+                <div style={{ width: 1, height: 16, background: "var(--border-primary)" }} />
               </div>
             </div>
             {/* Step card */}
@@ -510,7 +512,7 @@ function TransformationPipeline({ steps, sourceField, targetField }) {
                 }} />
               </div>
               <div style={{
-                flex: 1, background: "#0b0b14", borderRadius: 6, border: `1px solid ${hasExpression ? xlabel.color + "33" : "#1e1e2e"}`,
+                flex: 1, background: "var(--bg-surface-alt)", borderRadius: 6, border: `1px solid ${hasExpression ? xlabel.color + "33" : "var(--border-primary)"}`,
                 overflow: "hidden",
               }}>
                 {/* Step header */}
@@ -521,9 +523,9 @@ function TransformationPipeline({ steps, sourceField, targetField }) {
                   }}>
                     {xlabel.label.toUpperCase()}
                   </span>
-                  <span style={{ fontSize: 11, color: "#e2e8f0", fontFamily: FONT_MONO, fontWeight: 500 }}>{step.instance}</span>
+                  <span style={{ fontSize: 11, color: "var(--text-primary)", fontFamily: FONT_MONO, fontWeight: 500 }}>{step.instance}</span>
                   {step.inputField !== step.outputField && (
-                    <span style={{ fontSize: 9, color: "#4a4a6a", fontFamily: FONT_MONO, marginLeft: "auto" }}>
+                    <span style={{ fontSize: 9, color: "var(--text-muted)", fontFamily: FONT_MONO, marginLeft: "auto" }}>
                       {step.inputField} → {step.outputField}
                     </span>
                   )}
@@ -531,10 +533,70 @@ function TransformationPipeline({ steps, sourceField, targetField }) {
                 {/* Expression body */}
                 {step.expression && (
                   <div style={{
-                    padding: "6px 10px 8px", borderTop: "1px solid #12121f",
+                    padding: "6px 10px 8px", borderTop: "1px solid var(--border-subtle)",
                     fontSize: 11, fontFamily: FONT_MONO, lineHeight: 1.6, wordBreak: "break-all",
                   }}>
-                    <ExpressionDisplay expression={step.expression} />
+                    <ExpressionDisplay expression={step.expression} theme={theme} />
+                  </div>
+                )}
+                {/* Filter indicators */}
+                {step.filters && step.filters.length > 0 && (
+                  <div style={{ padding: "4px 10px 6px", borderTop: "1px solid var(--border-subtle)" }}>
+                    {step.filters.map((f, fi) => (
+                      <div key={fi} style={{ fontSize: 9, fontFamily: FONT_MONO, marginBottom: 2, lineHeight: 1.5 }}>
+                        <span style={{ fontSize: 8, background: "#7f1d1d", color: "#fca5a5", padding: "1px 5px", borderRadius: 3, fontWeight: 600, letterSpacing: "0.03em", marginRight: 6 }}>
+                          FILTER
+                        </span>
+                        <span style={{ color: "var(--text-secondary)" }}>{f.type}: </span>
+                        <span style={{ color: "#fca5a5" }} title={f.value}>
+                          {f.value.length > 80 ? f.value.slice(0, 78) + "\u2026" : f.value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {/* Router condition */}
+                {step.routerCondition && (
+                  <div style={{ padding: "4px 10px 6px", borderTop: "1px solid var(--border-subtle)" }}>
+                    <div style={{ fontSize: 9, fontFamily: FONT_MONO, lineHeight: 1.5 }}>
+                      <span style={{ fontSize: 8, background: "#7c2d12", color: "#fb923c", padding: "1px 5px", borderRadius: 3, fontWeight: 600, letterSpacing: "0.03em", marginRight: 6 }}>
+                        ROUTE
+                      </span>
+                      <span style={{ color: "#fb923c" }} title={step.routerCondition}>
+                        {step.routerCondition.length > 80 ? step.routerCondition.slice(0, 78) + "\u2026" : step.routerCondition}
+                      </span>
+                    </div>
+                  </div>
+                )}
+                {/* Mapplet internal steps */}
+                {step.mappletSteps && step.mappletSteps.length > 0 && (
+                  <div style={{ padding: "6px 10px 8px", borderTop: "1px solid var(--border-subtle)" }}>
+                    <div style={{ fontSize: 8, color: "#99f6e4", fontFamily: FONT_MONO, marginBottom: 4, fontWeight: 600, letterSpacing: "0.03em" }}>
+                      MAPPLET INTERNALS
+                    </div>
+                    {step.mappletSteps.map((ms, mi) => {
+                      const msLabel = getXformLabel(ms.type);
+                      const msHasExpr = ms.expression && !/^[A-Za-z_][A-Za-z0-9_]*$/.test(ms.expression.trim());
+                      return (
+                        <div key={mi} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+                          <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#2dd4bf", flexShrink: 0 }} />
+                          <span style={{ fontSize: 8, background: msLabel.bg, color: msLabel.color, padding: "1px 5px", borderRadius: 3, fontFamily: FONT_MONO, fontWeight: 600 }}>
+                            {msLabel.label.toUpperCase()}
+                          </span>
+                          <span style={{ fontSize: 9, color: "#99f6e4", fontFamily: FONT_MONO }}>{ms.instance}</span>
+                          {msHasExpr && (
+                            <span style={{ fontSize: 8, color: "#f59e0b", fontFamily: FONT_MONO }} title={ms.expression}>
+                              {"\u0192"}x
+                            </span>
+                          )}
+                          {ms.inputField !== ms.outputField && (
+                            <span style={{ fontSize: 8, color: "var(--text-muted)", fontFamily: FONT_MONO }}>
+                              {ms.inputField} \u2192 {ms.outputField}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -546,15 +608,15 @@ function TransformationPipeline({ steps, sourceField, targetField }) {
       {/* Target end */}
       <div style={{ display: "flex", alignItems: "stretch", gap: 8 }}>
         <div style={{ width: 18, display: "flex", justifyContent: "center" }}>
-          <div style={{ width: 1, height: 16, background: "#1e1e2e" }} />
+          <div style={{ width: 1, height: 16, background: "var(--border-primary)" }} />
         </div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <div style={{ width: 18, display: "flex", flexDirection: "column", alignItems: "center" }}>
           <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#a78bfa", boxShadow: "0 0 6px #a78bfa66" }} />
         </div>
-        <span style={{ fontSize: 10, color: "#c4b5fd", fontFamily: FONT_MONO }}>{targetField}</span>
-        <span style={{ fontSize: 8, color: "#4a4a6a", fontFamily: FONT_MONO }}>TARGET</span>
+        <span style={{ fontSize: 10, color: typeColors.target.text, fontFamily: FONT_MONO }}>{targetField}</span>
+        <span style={{ fontSize: 8, color: "var(--text-muted)", fontFamily: FONT_MONO }}>TARGET</span>
       </div>
     </div>
   );
@@ -575,7 +637,7 @@ function TableRef({ icon, name, db, owner, nameColor, iconColor, dbBg, ownerBg }
               </span>
             )}
             {owner && (
-              <span style={{ fontSize: 8, background: ownerBg, color: nameColor + "99", padding: "1px 5px", borderRadius: 3, fontFamily: FONT_MONO }}>
+              <span style={{ fontSize: 8, background: ownerBg, color: nameColor, padding: "1px 5px", borderRadius: 3, fontFamily: FONT_MONO, opacity: 0.8 }}>
                 {owner}
               </span>
             )}

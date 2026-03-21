@@ -1,3 +1,90 @@
+/* ── Theme Variables ──────────────────────────────────── */
+:root,
+[data-theme="dark"] {
+  --bg-primary: #06060a;
+  --bg-secondary: #08080d;
+  --bg-tertiary: #0a0a0f;
+  --bg-surface: #0a0a10;
+  --bg-surface-alt: #0b0b12;
+  --bg-surface-hover: #10101a;
+  --bg-tab-bar: #08080d;
+  --bg-tab-active: #12121f;
+  --bg-input: #0a0a0f;
+  --bg-table-header: #0d0d15;
+  --bg-table-even: #08080d;
+  --bg-table-odd: #0b0b12;
+  --bg-overlay: #0a0a0fcc;
+  --bg-header-from: #0a0a12;
+  --bg-header-to: #06060a;
+  --bg-expanded: #2a1a0e;
+
+  --border-primary: #1e1e2e;
+  --border-secondary: #2a2a3e;
+  --border-subtle: #12121f;
+
+  --text-primary: #e2e8f0;
+  --text-secondary: #6b7280;
+  --text-muted: #4a4a6a;
+
+  --selection-bg: #60a5fa33;
+  --selection-text: #e2e8f0;
+
+  --scrollbar-track: #08080d;
+  --scrollbar-thumb: #1e1e2e;
+  --scrollbar-hover: #2a2a3e;
+
+  --svg-grid: #12121f;
+
+  --shadow-sm: none;
+  --shadow-md: none;
+
+  --backdrop-bg: rgba(0, 0, 0, 0.5);
+  --drawer-shadow: -8px 0 40px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="light"] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
+  --bg-surface: #ffffff;
+  --bg-surface-alt: #f8fafc;
+  --bg-surface-hover: #f1f5f9;
+  --bg-tab-bar: #f1f5f9;
+  --bg-tab-active: #ffffff;
+  --bg-input: #ffffff;
+  --bg-table-header: #f1f5f9;
+  --bg-table-even: #ffffff;
+  --bg-table-odd: #f8fafc;
+  --bg-overlay: #ffffffcc;
+  --bg-header-from: #ffffff;
+  --bg-header-to: #f8fafc;
+  --bg-expanded: #fff7ed;
+
+  --border-primary: #e2e8f0;
+  --border-secondary: #cbd5e1;
+  --border-subtle: #f1f5f9;
+
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+
+  --selection-bg: #3b82f633;
+  --selection-text: #0f172a;
+
+  --scrollbar-track: #f1f5f9;
+  --scrollbar-thumb: #cbd5e1;
+  --scrollbar-hover: #94a3b8;
+
+  --svg-grid: #e2e8f0;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+
+  --backdrop-bg: rgba(0, 0, 0, 0.3);
+  --drawer-shadow: -8px 0 40px rgba(0, 0, 0, 0.15);
+}
+
+/* ── Reset ───────────────────────────────────────────── */
 *,
 *::before,
 *::after {
@@ -9,25 +96,25 @@
 html,
 body {
   height: 100%;
-  background: #06060a;
-  color: #e2e8f0;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   font-family: "Space Grotesk", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 ::selection {
-  background: #60a5fa33;
-  color: #e2e8f0;
+  background: var(--selection-bg);
+  color: var(--selection-text);
 }
 
 input::placeholder {
-  color: #4a4a6a;
+  color: var(--text-muted);
 }
 
 select option {
-  background: #0a0a0f;
-  color: #e2e8f0;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 ::-webkit-scrollbar {
@@ -35,12 +122,12 @@ select option {
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #08080d;
+  background: var(--scrollbar-track);
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e1e2e;
+  background: var(--scrollbar-thumb);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #2a2a3e;
+  background: var(--scrollbar-hover);
 }

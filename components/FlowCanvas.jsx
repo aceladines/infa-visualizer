@@ -2,9 +2,12 @@
 
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { buildFlowGraph, assignLayers, computeLayout } from "@/lib/buildFlowGraph";
-import { TYPE_COLORS, FONT_MONO, ZOOM_CONFIG } from "@/lib/constants";
+import { FONT_MONO, ZOOM_CONFIG, getTypeColors } from "@/lib/constants";
+import { useTheme } from "@/lib/ThemeContext";
 
 export default function FlowCanvas({ data, selectedMapping, onNodeClick }) {
+  const { theme } = useTheme();
+  const typeColors = getTypeColors(theme);
   const graph = useMemo(() => buildFlowGraph(data, selectedMapping), [data, selectedMapping]);
   const layers = useMemo(() => assignLayers(graph.nodes, graph.edges), [graph]);
   const layout = useMemo(() => computeLayout(graph.nodes, layers), [graph, layers]);
@@ -149,8 +152,8 @@ export default function FlowCanvas({ data, selectedMapping, onNodeClick }) {
         style={{
           overflow: "hidden",
           borderRadius: 12,
-          background: "#0a0a0f",
-          border: "1px solid #1e1e2e",
+          background: "var(--bg-tertiary)",
+          border: "1px solid var(--border-primary)",
           height: "70vh",
           minHeight: 400,
           cursor: isDragging ? "grabbing" : "grab",
@@ -168,7 +171,7 @@ export default function FlowCanvas({ data, selectedMapping, onNodeClick }) {
             transition: isDragging ? "none" : "transform 0.08s ease-out",
           }}
         >
-          <Defs />
+          <Defs theme={theme} />
           <rect width="100%" height="100%" fill="url(#grid)" />
 
           {graph.edges.map((e, i) => (
@@ -179,6 +182,7 @@ export default function FlowCanvas({ data, selectedMapping, onNodeClick }) {
               positions={layout.positions}
               isHighlighted={hoveredEdge === i || hoveredNode === e.from || hoveredNode === e.to}
               onHover={setHoveredEdge}
+              theme={theme}
             />
           ))}
 
@@ -190,6 +194,7 @@ export default function FlowCanvas({ data, selectedMapping, onNodeClick }) {
               isHovered={hoveredNode === n.id}
               onHover={setHoveredNode}
               onClick={onNodeClick}
+              typeColors={typeColors}
             />
           ))}
         </svg>
@@ -221,18 +226,18 @@ export default function FlowCanvas({ data, selectedMapping, onNodeClick }) {
           left: 12,
           fontSize: 10,
           fontFamily: FONT_MONO,
-          color: "#4a4a6a",
-          background: "#0a0a0fcc",
+          color: "var(--text-muted)",
+          background: "var(--bg-overlay)",
           padding: "4px 8px",
           borderRadius: 4,
-          border: "1px solid #1e1e2e",
+          border: "1px solid var(--border-primary)",
           zIndex: 10,
           userSelect: "none",
         }}
       >
         {Math.round(zoom * 100)}%
-        <span style={{ color: "#2a2a3e", margin: "0 4px" }}>|</span>
-        <span style={{ color: "#6b7280" }}>scroll to zoom · drag to pan</span>
+        <span style={{ color: "var(--border-secondary)", margin: "0 4px" }}>|</span>
+        <span style={{ color: "var(--text-secondary)" }}>scroll to zoom · drag to pan</span>
       </div>
 
       {/* Minimap (bottom-right) */}
@@ -243,18 +248,19 @@ export default function FlowCanvas({ data, selectedMapping, onNodeClick }) {
           right: 12,
           width: minimapW,
           height: minimapH,
-          background: "#08080ddd",
-          border: "1px solid #1e1e2e",
+          background: "var(--bg-secondary)",
+          border: "1px solid var(--border-primary)",
           borderRadius: 6,
           overflow: "hidden",
           zIndex: 10,
+          opacity: 0.9,
         }}
       >
         <svg width={minimapW} height={minimapH}>
           {graph.nodes.map((n) => {
             const pos = layout.positions[n.id];
             if (!pos) return null;
-            const colors = TYPE_COLORS[n.type] || TYPE_COLORS.transform;
+            const colors = typeColors[n.type] || typeColors.transform;
             return (
               <rect
                 key={n.id}
@@ -279,7 +285,7 @@ export default function FlowCanvas({ data, selectedMapping, onNodeClick }) {
                 y1={(from.y + from.h / 2) * mmScale}
                 x2={to.x * mmScale}
                 y2={(to.y + to.h / 2) * mmScale}
-                stroke="#2a2a3e"
+                stroke="var(--border-secondary)"
                 strokeWidth={0.5}
               />
             );
@@ -312,10 +318,10 @@ function ZoomBtn({ onClick, title, small, children }) {
       style={{
         width: 32,
         height: 32,
-        background: "#0a0a0fcc",
-        border: "1px solid #1e1e2e",
+        background: "var(--bg-overlay)",
+        border: "1px solid var(--border-primary)",
         borderRadius: 6,
-        color: "#6b7280",
+        color: "var(--text-secondary)",
         fontSize: small ? 10 : 18,
         fontFamily: FONT_MONO,
         cursor: "pointer",
@@ -332,11 +338,14 @@ function ZoomBtn({ onClick, title, small, children }) {
 
 // ─── SVG Defs ────────────────────────────────────────────────────
 
-function Defs() {
+function Defs({ theme }) {
+  const arrowColor = theme === "light" ? "#94a3b8" : "#4a4a6a";
+  const gridColor = theme === "light" ? "#e2e8f0" : "#12121f";
+
   return (
     <defs>
       <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-        <polygon points="0 0, 8 3, 0 6" fill="#4a4a6a" />
+        <polygon points="0 0, 8 3, 0 6" fill={arrowColor} />
       </marker>
       <marker id="arrowhead-hl" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
         <polygon points="0 0, 8 3, 0 6" fill="#60a5fa" />
@@ -346,7 +355,7 @@ function Defs() {
         <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
       </filter>
       <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
-        <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#12121f" strokeWidth="0.5" />
+        <path d="M 24 0 L 0 0 0 24" fill="none" stroke={gridColor} strokeWidth="0.5" />
       </pattern>
     </defs>
   );
@@ -354,7 +363,7 @@ function Defs() {
 
 // ─── Edge component ──────────────────────────────────────────────
 
-function Edge({ edge, index, positions, isHighlighted, onHover }) {
+function Edge({ edge, index, positions, isHighlighted, onHover, theme }) {
   const from = positions[edge.from];
   const to = positions[edge.to];
   if (!from || !to) return null;
@@ -365,14 +374,18 @@ function Edge({ edge, index, positions, isHighlighted, onHover }) {
   const path = `M ${x1} ${y1} C ${cx1} ${y1}, ${cx2} ${y2}, ${x2} ${y2}`;
   const midX = (x1 + x2) / 2, midY = (y1 + y2) / 2;
 
+  const defaultStroke = theme === "light" ? "#cbd5e1" : "#2a2a3e";
+  const tooltipBg = theme === "light" ? "#eff6ff" : "#1a1a2e";
+  const tooltipText = theme === "light" ? "#1d4ed8" : "#93c5fd";
+
   return (
     <g data-edge="true">
       <path d={path} fill="none" stroke="transparent" strokeWidth="14" style={{ cursor: "pointer" }} onMouseEnter={() => onHover(index)} onMouseLeave={() => onHover(null)} />
-      <path d={path} fill="none" stroke={isHighlighted ? "#60a5fa" : "#2a2a3e"} strokeWidth={isHighlighted ? 2.5 : 1.5} markerEnd={isHighlighted ? "url(#arrowhead-hl)" : "url(#arrowhead)"} style={{ transition: "all 0.2s", pointerEvents: "none" }} />
+      <path d={path} fill="none" stroke={isHighlighted ? "#60a5fa" : defaultStroke} strokeWidth={isHighlighted ? 2.5 : 1.5} markerEnd={isHighlighted ? "url(#arrowhead-hl)" : "url(#arrowhead)"} style={{ transition: "all 0.2s", pointerEvents: "none" }} />
       {isHighlighted && (
         <g>
-          <rect x={midX - 28} y={midY - 18} width="56" height="18" rx="4" fill="#1a1a2e" stroke="#60a5fa" strokeWidth="0.5" />
-          <text x={midX} y={midY - 6} textAnchor="middle" fontSize="9" fill="#93c5fd" fontFamily={FONT_MONO}>{edge.fields.length} field{edge.fields.length !== 1 ? "s" : ""}</text>
+          <rect x={midX - 28} y={midY - 18} width="56" height="18" rx="4" fill={tooltipBg} stroke="#60a5fa" strokeWidth="0.5" />
+          <text x={midX} y={midY - 6} textAnchor="middle" fontSize="9" fill={tooltipText} fontFamily={FONT_MONO}>{edge.fields.length} field{edge.fields.length !== 1 ? "s" : ""}</text>
         </g>
       )}
       {edge.condition && isHighlighted && (
@@ -384,16 +397,16 @@ function Edge({ edge, index, positions, isHighlighted, onHover }) {
 
 // ─── Node component ──────────────────────────────────────────────
 
-function Node({ node, pos, isHovered, onHover, onClick }) {
+function Node({ node, pos, isHovered, onHover, onClick, typeColors }) {
   if (!pos) return null;
-  const colors = TYPE_COLORS[node.type] || TYPE_COLORS.transform;
+  const colors = typeColors[node.type] || typeColors.transform;
   const meta = node.meta;
   const dbLabel = meta?.dbdName || meta?.databaseType || null;
 
   return (
     <g data-node="true" onMouseEnter={() => onHover(node.id)} onMouseLeave={() => onHover(null)} onClick={(e) => { e.stopPropagation(); onClick?.(node); }} style={{ cursor: "pointer" }}>
       {isHovered && <rect x={pos.x - 3} y={pos.y - 3} width={pos.w + 6} height={pos.h + 6} rx="10" fill="none" stroke={colors.border} strokeWidth="1" opacity="0.4" filter="url(#glow)" />}
-      <rect x={pos.x} y={pos.y} width={pos.w} height={pos.h} rx="8" fill={colors.bg} stroke={isHovered ? colors.border : "#1e1e2e"} strokeWidth={isHovered ? 2 : 1} style={{ transition: "all 0.2s" }} />
+      <rect x={pos.x} y={pos.y} width={pos.w} height={pos.h} rx="8" fill={colors.bg} stroke={isHovered ? colors.border : "var(--border-primary)"} strokeWidth={isHovered ? 2 : 1} style={{ transition: "all 0.2s" }} />
       {/* Type badge */}
       <rect x={pos.x + 8} y={pos.y + 6} width={node.type.length * 6.5 + 10} height={16} rx="4" fill={colors.badge} />
       <text x={pos.x + 13} y={pos.y + 17} fontSize="9" fill={colors.text} fontFamily={FONT_MONO} fontWeight="600">{node.type.toUpperCase()}</text>
@@ -405,12 +418,12 @@ function Node({ node, pos, isHovered, onHover, onClick }) {
         </>
       )}
       {/* Name */}
-      <text x={pos.x + 10} y={pos.y + 38} fontSize="11.5" fill="#e2e8f0" fontFamily={FONT_MONO} fontWeight="500">{node.label.length > 22 ? node.label.slice(0, 20) + "…" : node.label}</text>
+      <text x={pos.x + 10} y={pos.y + 38} fontSize="11.5" fill="var(--text-primary)" fontFamily={FONT_MONO} fontWeight="500">{node.label.length > 22 ? node.label.slice(0, 20) + "…" : node.label}</text>
       {/* Subtitle */}
       {meta?.ownerName ? (
-        <text x={pos.x + 10} y={pos.y + 52} fontSize="9" fill="#4a4a6a" fontFamily={FONT_MONO}>{meta.ownerName}</text>
+        <text x={pos.x + 10} y={pos.y + 52} fontSize="9" fill="var(--text-muted)" fontFamily={FONT_MONO}>{meta.ownerName}</text>
       ) : node.instanceType && node.instanceType !== node.type ? (
-        <text x={pos.x + 10} y={pos.y + 52} fontSize="9" fill="#4a4a6a" fontFamily={FONT_MONO}>{node.instanceType.length > 28 ? node.instanceType.slice(0, 26) + "…" : node.instanceType}</text>
+        <text x={pos.x + 10} y={pos.y + 52} fontSize="9" fill="var(--text-muted)" fontFamily={FONT_MONO}>{node.instanceType.length > 28 ? node.instanceType.slice(0, 26) + "…" : node.instanceType}</text>
       ) : null}
       {/* Click hint */}
       {isHovered && <text x={pos.x + pos.w - 10} y={pos.y + 52} textAnchor="end" fontSize="8" fill={colors.text} opacity="0.5" fontFamily={FONT_MONO}>click ↗</text>}

@@ -3,7 +3,8 @@
 import { useState, useCallback } from "react";
 import { parseInformaticaXML } from "@/lib/parseXml";
 import { FONT_MONO } from "@/lib/constants";
-import { FlowIcon, TableIcon, DBIcon, WfIcon } from "@/components/icons";
+import { useTheme } from "@/lib/ThemeContext";
+import { FlowIcon, TableIcon, DBIcon, WfIcon, SunIcon, MoonIcon } from "@/components/icons";
 import { Backdrop } from "@/components/ui";
 import {
   FlowCanvas,
@@ -111,15 +112,17 @@ export default function HomePage() {
 // ─── Sub-components (page-level, not worth separate files) ───────
 
 function Header({ fileName, hasData, onReset }) {
+  const { theme, toggleTheme } = useTheme();
+
   return (
     <div
       style={{
         padding: "20px 28px",
-        borderBottom: "1px solid #1e1e2e",
+        borderBottom: "1px solid var(--border-primary)",
         display: "flex",
         alignItems: "center",
         gap: 16,
-        background: "linear-gradient(180deg, #0a0a12, #06060a)",
+        background: "linear-gradient(180deg, var(--bg-header-from), var(--bg-header-to))",
       }}
     >
       <div
@@ -140,32 +143,53 @@ function Header({ fileName, hasData, onReset }) {
         <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.02em" }}>
           INFA Flow Visualizer
         </div>
-        <div style={{ fontSize: 11, color: "#4a4a6a", fontFamily: FONT_MONO }}>
+        <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: FONT_MONO }}>
           PowerCenter XML → Visual Flow + Field Mapping
         </div>
       </div>
-      {hasData && (
-        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ fontSize: 11, color: "#4a4a6a", fontFamily: FONT_MONO }}>
-            {fileName}
-          </span>
-          <button
-            onClick={onReset}
-            style={{
-              padding: "6px 14px",
-              background: "#1e1e2e",
-              border: "1px solid #2a2a3e",
-              borderRadius: 6,
-              color: "#6b7280",
-              fontSize: 11,
-              cursor: "pointer",
-              fontFamily: FONT_MONO,
-            }}
-          >
-            New File
-          </button>
-        </div>
-      )}
+      <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>
+        {hasData && (
+          <>
+            <span style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: FONT_MONO }}>
+              {fileName}
+            </span>
+            <button
+              onClick={onReset}
+              style={{
+                padding: "6px 14px",
+                background: "var(--border-primary)",
+                border: "1px solid var(--border-secondary)",
+                borderRadius: 6,
+                color: "var(--text-secondary)",
+                fontSize: 11,
+                cursor: "pointer",
+                fontFamily: FONT_MONO,
+              }}
+            >
+              New File
+            </button>
+          </>
+        )}
+        <button
+          onClick={toggleTheme}
+          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 34,
+            height: 34,
+            borderRadius: 8,
+            background: "var(--bg-surface-alt)",
+            border: "1px solid var(--border-primary)",
+            color: "var(--text-secondary)",
+            cursor: "pointer",
+            transition: "all 0.2s",
+          }}
+        >
+          {theme === "dark" ? <SunIcon /> : <MoonIcon />}
+        </button>
+      </div>
     </div>
   );
 }
@@ -177,17 +201,17 @@ function RepositoryInfo({ data }) {
       style={{
         padding: "10px 0",
         fontSize: 11,
-        color: "#4a4a6a",
+        color: "var(--text-muted)",
         fontFamily: FONT_MONO,
       }}
     >
-      Repository: <span style={{ color: "#6b7280" }}>{data.repository.name}</span>
+      Repository: <span style={{ color: "var(--text-secondary)" }}>{data.repository.name}</span>
       {data.repository.version && <> &middot; v{data.repository.version}</>}
       {data.folders.length > 0 && (
         <>
           {" "}
           &middot; Folder:{" "}
-          <span style={{ color: "#6b7280" }}>{data.folders[0]?.name}</span>
+          <span style={{ color: "var(--text-secondary)" }}>{data.folders[0]?.name}</span>
         </>
       )}
     </div>
@@ -208,10 +232,10 @@ function TabBar({
         display: "flex",
         gap: 2,
         marginBottom: 20,
-        background: "#08080d",
+        background: "var(--bg-tab-bar)",
         padding: 4,
         borderRadius: 10,
-        border: "1px solid #1e1e2e",
+        border: "1px solid var(--border-primary)",
         flexWrap: "wrap",
       }}
     >
@@ -226,19 +250,20 @@ function TabBar({
             justifyContent: "center",
             gap: 6,
             padding: "10px 14px",
-            background: activeTab === t.id ? "#12121f" : "transparent",
+            background: activeTab === t.id ? "var(--bg-tab-active)" : "transparent",
             border:
               activeTab === t.id
-                ? "1px solid #1e1e2e"
+                ? "1px solid var(--border-primary)"
                 : "1px solid transparent",
             borderRadius: 8,
-            color: activeTab === t.id ? "#e2e8f0" : "#4a4a6a",
+            color: activeTab === t.id ? "var(--text-primary)" : "var(--text-muted)",
             fontSize: 11,
             fontWeight: 500,
             cursor: "pointer",
             fontFamily: FONT_MONO,
             transition: "all 0.2s",
             whiteSpace: "nowrap",
+            boxShadow: activeTab === t.id ? "var(--shadow-sm)" : "none",
           }}
         >
           {t.icon}
@@ -252,10 +277,10 @@ function TabBar({
           onChange={(e) => onMappingChange(e.target.value)}
           style={{
             padding: "8px 12px",
-            background: "#0a0a0f",
-            border: "1px solid #1e1e2e",
+            background: "var(--bg-input)",
+            border: "1px solid var(--border-primary)",
             borderRadius: 8,
-            color: "#6b7280",
+            color: "var(--text-secondary)",
             fontSize: 11,
             fontFamily: FONT_MONO,
             cursor: "pointer",

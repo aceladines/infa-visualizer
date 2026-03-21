@@ -1,25 +1,9 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { FONT_MONO } from "@/lib/constants";
+import { FONT_MONO, getTaskStyles } from "@/lib/constants";
+import { useTheme } from "@/lib/ThemeContext";
 import { WfIcon } from "@/components/icons";
-
-// ─── Task type styling ────────────────────────────────────────────
-const TASK_STYLES = {
-  Start: { label: "START", color: "#6b7280", bg: "#1e1e2e" },
-  Session: { label: "SESSION", color: "#60a5fa", bg: "#1e3a5f" },
-  Command: { label: "COMMAND", color: "#f59e0b", bg: "#78350f" },
-  Timer: { label: "TIMER", color: "#a78bfa", bg: "#4c1d95" },
-  Decision: { label: "DECISION", color: "#f472b6", bg: "#831843" },
-  Assignment: { label: "ASSIGN", color: "#2dd4bf", bg: "#115e59" },
-  Email: { label: "EMAIL", color: "#fbbf24", bg: "#78350f" },
-  Control: { label: "CONTROL", color: "#fb923c", bg: "#7c2d12" },
-  "Event-Wait": { label: "EVENT", color: "#34d399", bg: "#065f46" },
-};
-
-function getTaskStyle(type) {
-  return TASK_STYLES[type] || { label: (type || "TASK").toUpperCase(), color: "#93c5fd", bg: "#1e3a5f" };
-}
 
 // ─── Build topological stages from workflow links ─────────────────
 
@@ -79,81 +63,94 @@ function buildStages(wf, sessions) {
     current = [...next];
   }
 
-  // Add orphan tasks not reached by the graph
+  // Separate orphan tasks — these are auxiliary/unlinked, not part of main execution
   const staged = new Set(stages.flat().map((t) => t.name));
-  const orphans = wf.tasks.filter((t) => !staged.has(t.name));
-  if (orphans.length > 0) {
-    stages.push(
-      orphans.map((t) => ({
-        ...t,
-        session: sessions.find(
-          (s) => s.name === t.name || s.name === t.transformationName
-        ),
-        incoming: incomingEdges.get(t.name) || [],
-      }))
-    );
-  }
+  const auxiliaryTasks = wf.tasks
+    .filter((t) => !staged.has(t.name))
+    .map((t) => ({
+      ...t,
+      session: sessions.find(
+        (s) => s.name === t.name || s.name === t.transformationName
+      ),
+      incoming: incomingEdges.get(t.name) || [],
+    }));
 
-  return stages;
+  return { stages, auxiliaryTasks };
+}
+
+// ─── Helper to get task style ─────────────────────────────────────
+
+function getTaskStyle(type, taskStyles) {
+  return taskStyles[type] || { label: (type || "TASK").toUpperCase(), color: "#93c5fd", bg: "#1e3a5f" };
 }
 
 // ─── Main component ───────────────────────────────────────────────
 
 export default function WorkflowOverview({ data }) {
   const [expanded, setExpanded] = useState(null);
+  const { theme } = useTheme();
+  const taskStyles = getTaskStyles(theme);
 
   if (data.workflows.length === 0) {
     return (
-      <div style={{ padding: 32, textAlign: "center", color: "#4a4a6a", fontFamily: FONT_MONO, fontSize: 13 }}>
+      <div style={{ padding: 32, textAlign: "center", color: "var(--text-muted)", fontFamily: FONT_MONO, fontSize: 13 }}>
         No workflows found
       </div>
     );
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       {data.workflows.map((wf, wi) => {
         const sessionTasks = wf.tasks.filter((t) => t.type === "Session");
 
         return (
-          <div key={wi} style={{ border: "1px solid #1e1e2e", borderRadius: 10, overflow: "hidden" }}>
+          <div key={wi} style={{ border: "1px solid var(--border-primary)", borderRadius: 10, overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
             {/* Header */}
             <div
               onClick={() => setExpanded(expanded === wi ? null : wi)}
               style={{
-                display: "flex", alignItems: "center", gap: 10, padding: "14px 16px",
-                background: expanded === wi ? "#2a1a0e" : "#0a0a0f",
+                display: "flex", alignItems: "center", gap: 12, padding: "14px 18px",
+                background: expanded === wi ? "var(--bg-expanded)" : "var(--bg-tertiary)",
                 cursor: "pointer", transition: "background 0.2s",
               }}
             >
               <span style={{ color: "#f59e0b" }}><WfIcon /></span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ color: "#fcd34d", fontFamily: FONT_MONO, fontSize: 13, fontWeight: 600 }}>
+                <div style={{ color: theme === "light" ? "#c2410c" : "#fcd34d", fontFamily: FONT_MONO, fontSize: 14, fontWeight: 600 }}>
                   {wf.name}
                 </div>
                 {wf.description && (
-                  <div style={{ fontSize: 10, color: "#6b728099", fontFamily: FONT_MONO, marginTop: 2 }}>
+                  <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: FONT_MONO, marginTop: 2 }}>
                     {wf.description}
                   </div>
                 )}
               </div>
               {wf.isValid && (
                 <span style={{
-                  fontSize: 9, padding: "3px 8px", borderRadius: 4, fontFamily: FONT_MONO, fontWeight: 600,
+                  fontSize: 10, padding: "3px 10px", borderRadius: 4, fontFamily: FONT_MONO, fontWeight: 600,
                   background: wf.isValid === "YES" ? "#065f46" : "#7f1d1d",
                   color: wf.isValid === "YES" ? "#6ee7b7" : "#fca5a5",
                 }}>
                   {wf.isValid === "YES" ? "VALID" : "INVALID"}
                 </span>
               )}
-              <span style={{ color: "#f59e0b", fontSize: 11, fontFamily: FONT_MONO }}>
+              <span style={{
+                fontSize: 10, padding: "3px 10px", borderRadius: 20,
+                background: "var(--bg-surface-alt)", border: "1px solid var(--border-primary)",
+                color: "#f59e0b", fontFamily: FONT_MONO, fontWeight: 500,
+              }}>
                 {sessionTasks.length} session{sessionTasks.length !== 1 ? "s" : ""}
               </span>
-              <span style={{ color: "#4a4a6a", fontSize: 11, fontFamily: FONT_MONO }}>
+              <span style={{
+                fontSize: 10, padding: "3px 10px", borderRadius: 20,
+                background: "var(--bg-surface-alt)", border: "1px solid var(--border-primary)",
+                color: "var(--text-secondary)", fontFamily: FONT_MONO, fontWeight: 500,
+              }}>
                 {wf.tasks.length} task{wf.tasks.length !== 1 ? "s" : ""}
               </span>
               <span style={{
-                color: "#4a4a6a",
+                color: "var(--text-muted)",
                 transform: expanded === wi ? "rotate(180deg)" : "rotate(0)",
                 transition: "transform 0.2s",
               }}>
@@ -162,7 +159,7 @@ export default function WorkflowOverview({ data }) {
             </div>
 
             {/* Expanded: staged execution graph */}
-            {expanded === wi && <WorkflowBody wf={wf} sessions={data.sessions} />}
+            {expanded === wi && <WorkflowBody wf={wf} sessions={data.sessions} taskStyles={taskStyles} theme={theme} />}
           </div>
         );
       })}
@@ -172,69 +169,100 @@ export default function WorkflowOverview({ data }) {
 
 // ─── Expanded body: staged execution graph ────────────────────────
 
-function WorkflowBody({ wf, sessions }) {
-  const stages = useMemo(() => buildStages(wf, sessions), [wf, sessions]);
+function WorkflowBody({ wf, sessions, taskStyles, theme }) {
+  const { stages, auxiliaryTasks } = useMemo(() => buildStages(wf, sessions), [wf, sessions]);
 
-  if (stages.length === 0) {
+  if (stages.length === 0 && auxiliaryTasks.length === 0) {
     return (
-      <div style={{ padding: 16, background: "#08080d", borderTop: "1px solid #1e1e2e", textAlign: "center", color: "#4a4a6a", fontFamily: FONT_MONO, fontSize: 11 }}>
+      <div style={{ padding: 20, background: "var(--bg-secondary)", borderTop: "1px solid var(--border-primary)", textAlign: "center", color: "var(--text-muted)", fontFamily: FONT_MONO, fontSize: 12 }}>
         No execution graph available
       </div>
     );
   }
 
   return (
-    <div style={{ padding: 16, background: "#08080d", borderTop: "1px solid #1e1e2e" }}>
-      <div style={{ fontSize: 9, color: "#6b7280", fontFamily: FONT_MONO, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12 }}>
-        Execution Graph
-      </div>
+    <div style={{ padding: 20, background: "var(--bg-secondary)", borderTop: "1px solid var(--border-primary)" }}>
+      {stages.length > 0 && (
+        <>
+          <div style={{ fontSize: 11, color: "var(--text-secondary)", fontFamily: FONT_MONO, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 16, fontWeight: 600 }}>
+            Execution Graph
+          </div>
 
-      {stages.map((stage, si) => (
-        <div key={si}>
-          {/* Connector between stages */}
-          {si > 0 && <StageConnector stage={stage} />}
+          {stages.map((stage, si) => (
+            <div key={si}>
+              {/* Connector between stages */}
+              {si > 0 && <StageConnector stage={stage} theme={theme} />}
 
-          {/* Stage row */}
-          <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 4 }}>
-            {/* Stage label */}
-            <div style={{
-              minWidth: 58, paddingTop: 8,
-              fontSize: 9, color: "#4a4a6a", fontFamily: FONT_MONO, fontWeight: 500,
-              textAlign: "right", flexShrink: 0,
-            }}>
-              {si === 0 ? "ROOT" : `STAGE ${si}`}
-              {stage.length > 1 && (
-                <div style={{ fontSize: 7, color: "#78350f", marginTop: 2, fontWeight: 600 }}>PARALLEL</div>
-              )}
+              {/* Stage section */}
+              <div style={{
+                border: "1px solid var(--border-primary)",
+                borderRadius: 8,
+                overflow: "hidden",
+                marginBottom: 4,
+                boxShadow: "var(--shadow-sm)",
+              }}>
+                {/* Stage header bar */}
+                <div style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "8px 16px",
+                  background: "var(--bg-table-header)",
+                  borderBottom: "1px solid var(--border-primary)",
+                  borderLeft: `3px solid ${si === 0 ? "#6b7280" : "#60a5fa"}`,
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 11, color: "var(--text-secondary)", fontFamily: FONT_MONO, fontWeight: 600 }}>
+                      {si === 0 ? "ROOT" : `STAGE ${si}`}
+                    </span>
+                    {stage.length > 1 && (
+                      <span style={{
+                        fontSize: 9, padding: "2px 8px", borderRadius: 10,
+                        background: theme === "light" ? "#fef3c7" : "#78350f",
+                        color: theme === "light" ? "#b45309" : "#fcd34d",
+                        fontFamily: FONT_MONO, fontWeight: 600,
+                      }}>
+                        PARALLEL
+                      </span>
+                    )}
+                  </div>
+                  <span style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: FONT_MONO }}>
+                    {stage.length} task{stage.length !== 1 ? "s" : ""}
+                  </span>
+                </div>
+
+                {/* Tasks in this stage */}
+                <div style={{ display: "flex", gap: 12, flexWrap: "wrap", padding: "12px 16px" }}>
+                  {stage.map((task, ti) => (
+                    <TaskCard key={ti} task={task} taskStyles={taskStyles} />
+                  ))}
+                </div>
+              </div>
             </div>
+          ))}
+        </>
+      )}
 
-            {/* Tasks in this stage */}
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", flex: 1 }}>
-              {stage.map((task, ti) => (
-                <TaskCard key={ti} task={task} />
+      {/* Auxiliary / Unlinked tasks — not connected via WORKFLOWLINK */}
+      {auxiliaryTasks.length > 0 && (
+        <div style={{ marginTop: stages.length > 0 ? 24 : 0 }}>
+          <div style={{ fontSize: 11, color: "var(--text-secondary)", fontFamily: FONT_MONO, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10, fontWeight: 600 }}>
+            Auxiliary / Unlinked Tasks
+          </div>
+          <div style={{
+            padding: "12px 16px", background: "var(--bg-primary)", borderRadius: 8,
+            border: "1px dashed var(--border-primary)",
+          }}>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", opacity: 0.7 }}>
+              {auxiliaryTasks.map((task, ti) => (
+                <TaskCard key={ti} task={task} taskStyles={taskStyles} />
               ))}
             </div>
           </div>
         </div>
-      ))}
+      )}
 
       {/* Workflow variables */}
       {wf.variables && wf.variables.length > 0 && (
-        <div style={{ marginTop: 16 }}>
-          <div style={{ fontSize: 9, color: "#6b7280", fontFamily: FONT_MONO, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
-            Variables
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-            {wf.variables.map((v, vi) => (
-              <span key={vi} style={{
-                fontSize: 9, background: "#581c87", color: "#c084fc", padding: "3px 8px",
-                borderRadius: 4, fontFamily: FONT_MONO, border: "1px solid #581c8777",
-              }}>
-                {v.name}{v.defaultValue ? ` = ${v.defaultValue}` : ""}
-              </span>
-            ))}
-          </div>
-        </div>
+        <VariablesTable variables={wf.variables} theme={theme} />
       )}
     </div>
   );
@@ -242,7 +270,7 @@ function WorkflowBody({ wf, sessions }) {
 
 // ─── Stage connector (line + conditions between stages) ───────────
 
-function StageConnector({ stage }) {
+function StageConnector({ stage, theme }) {
   // Collect non-trivial conditions from incoming edges
   const conditions = [];
   const seen = new Set();
@@ -260,77 +288,132 @@ function StageConnector({ stage }) {
   });
 
   return (
-    <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 4 }}>
-      <div style={{ minWidth: 58, flexShrink: 0 }} />
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
-        <div style={{ width: 1, height: 12, background: "#1e1e2e", marginLeft: 14 }} />
-        {conditions.length > 0 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 2, marginLeft: 22, marginBottom: 2 }}>
-            {conditions.map((c, ci) => (
-              <span
-                key={ci}
-                title={c.condition}
-                style={{
-                  fontSize: 8, color: "#f59e0b", fontFamily: FONT_MONO, opacity: 0.8,
-                  maxWidth: 420, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                }}
-              >
-                {c.condition.length > 70 ? c.condition.slice(0, 68) + "…" : c.condition}
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", paddingLeft: 28, marginBottom: 4 }}>
+      <div style={{ width: 2, height: 10, background: "var(--border-primary)", marginLeft: 4 }} />
+      {conditions.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 3, marginLeft: 16, marginBottom: 3 }}>
+          {conditions.map((c, ci) => (
+            <div
+              key={ci}
+              title={c.condition}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                fontSize: 10, fontFamily: FONT_MONO,
+              }}
+            >
+              <span style={{
+                fontSize: 8, padding: "1px 6px", borderRadius: 3, fontWeight: 600,
+                background: theme === "light" ? "#fef3c7" : "#78350f",
+                color: theme === "light" ? "#b45309" : "#fcd34d",
+                letterSpacing: "0.03em",
+              }}>
+                IF
               </span>
-            ))}
-          </div>
-        )}
-        <div style={{ width: 1, height: conditions.length > 0 ? 4 : 0, background: "#1e1e2e", marginLeft: 14 }} />
-      </div>
+              <span style={{
+                color: "#f59e0b", maxWidth: 600, overflow: "hidden",
+                textOverflow: "ellipsis", whiteSpace: "nowrap",
+              }}>
+                {c.condition.length > 120 ? c.condition.slice(0, 118) + "…" : c.condition}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{ width: 2, height: conditions.length > 0 ? 6 : 10, background: "var(--border-primary)", marginLeft: 4 }} />
+      <div style={{ marginLeft: 1, color: "var(--border-secondary)", fontSize: 8, lineHeight: 1 }}>▼</div>
     </div>
   );
 }
 
 // ─── Task card ────────────────────────────────────────────────────
 
-function TaskCard({ task }) {
-  const style = getTaskStyle(task.type);
+function TaskCard({ task, taskStyles }) {
+  const style = getTaskStyle(task.type, taskStyles);
 
   return (
     <div style={{
-      padding: "8px 12px", background: "#0b0b12", borderRadius: 6,
-      border: "1px solid #1e1e2e", minWidth: 140, maxWidth: 300,
+      padding: "12px 16px", background: "var(--bg-surface-alt)", borderRadius: 8,
+      border: "1px solid var(--border-primary)", minWidth: 200, maxWidth: 450,
+      borderLeft: `3px solid ${style.color}`,
+      boxShadow: "var(--shadow-sm)",
     }}>
       {/* Type badge */}
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
         <span style={{
-          fontSize: 8, background: style.bg, color: style.color, padding: "2px 6px",
-          borderRadius: 3, fontFamily: FONT_MONO, fontWeight: 600, letterSpacing: "0.03em",
+          fontSize: 10, background: style.bg, color: style.color, padding: "3px 8px",
+          borderRadius: 4, fontFamily: FONT_MONO, fontWeight: 600, letterSpacing: "0.03em",
         }}>
           {style.label}
         </span>
         {task.failParentIfInstanceFails === "YES" && (
-          <span style={{ fontSize: 7, color: "#f87171", fontFamily: FONT_MONO }}>FAIL-PARENT</span>
+          <span style={{ fontSize: 9, color: "#f87171", fontFamily: FONT_MONO, fontWeight: 600 }}>FAIL-PARENT</span>
         )}
       </div>
       {/* Task name */}
-      <div style={{ color: "#e2e8f0", fontSize: 11, fontFamily: FONT_MONO, fontWeight: 500, wordBreak: "break-all" }}>
+      <div style={{ color: "var(--text-primary)", fontSize: 13, fontFamily: FONT_MONO, fontWeight: 500, wordBreak: "break-all" }}>
         {task.name}
       </div>
       {/* Session → mapping reference */}
       {task.session?.mappingName && (
-        <div style={{ marginTop: 3, fontSize: 9, fontFamily: FONT_MONO }}>
-          <span style={{ color: "#4a4a6a" }}>→ </span>
-          <span style={{ color: "#93c5fd" }}>{task.session.mappingName}</span>
+        <div style={{ marginTop: 4, fontSize: 11, fontFamily: FONT_MONO }}>
+          <span style={{ color: "var(--text-muted)" }}>→ </span>
+          <span style={{ color: "#60a5fa" }}>{task.session.mappingName}</span>
         </div>
       )}
       {/* Incoming conditions (non-trivial) */}
       {task.incoming && task.incoming.length > 0 && task.incoming.some((i) => i.condition && i.condition !== "1=1") && (
-        <div style={{ marginTop: 4, display: "flex", flexDirection: "column", gap: 2 }}>
+        <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 3 }}>
           {task.incoming
             .filter((i) => i.condition && i.condition !== "1=1")
             .map((inc, ii) => (
-              <div key={ii} style={{ fontSize: 7, color: "#f59e0b", fontFamily: FONT_MONO, opacity: 0.7 }} title={inc.condition}>
-                ← {inc.from}: {inc.condition.length > 35 ? inc.condition.slice(0, 33) + "…" : inc.condition}
+              <div key={ii} style={{ fontSize: 10, color: "#f59e0b", fontFamily: FONT_MONO, opacity: 0.8 }} title={inc.condition}>
+                ← {inc.from}: {inc.condition.length > 60 ? inc.condition.slice(0, 58) + "…" : inc.condition}
               </div>
             ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Variables table ──────────────────────────────────────────────
+
+function VariablesTable({ variables, theme }) {
+  const varColor = theme === "light" ? "#7c3aed" : "#c084fc";
+  const prefixColor = theme === "light" ? "#a78bfa" : "#7c3aed";
+
+  return (
+    <div style={{ marginTop: 20 }}>
+      <div style={{ fontSize: 11, color: "var(--text-secondary)", fontFamily: FONT_MONO, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10, fontWeight: 600 }}>
+        Variables ({variables.length})
+      </div>
+      <div style={{ border: "1px solid var(--border-primary)", borderRadius: 8, overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11, fontFamily: FONT_MONO }}>
+          <thead>
+            <tr style={{ background: "var(--bg-table-header)" }}>
+              <th style={{ padding: "8px 14px", textAlign: "left", color: "var(--text-muted)", fontWeight: 500, borderBottom: "1px solid var(--border-primary)", fontSize: 9, textTransform: "uppercase", letterSpacing: "0.06em" }}>Name</th>
+              <th style={{ padding: "8px 14px", textAlign: "left", color: "var(--text-muted)", fontWeight: 500, borderBottom: "1px solid var(--border-primary)", fontSize: 9, textTransform: "uppercase", letterSpacing: "0.06em" }}>Datatype</th>
+              <th style={{ padding: "8px 14px", textAlign: "left", color: "var(--text-muted)", fontWeight: 500, borderBottom: "1px solid var(--border-primary)", fontSize: 9, textTransform: "uppercase", letterSpacing: "0.06em" }}>Default Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            {variables.map((v, vi) => (
+              <tr key={vi} style={{ background: vi % 2 === 0 ? "var(--bg-table-even)" : "var(--bg-table-odd)" }}>
+                <td style={{ padding: "7px 14px", borderBottom: "1px solid var(--border-subtle)" }}>
+                  <span style={{ color: prefixColor }}>$$</span>
+                  <span style={{ color: varColor, fontWeight: 500 }}>{v.name.replace(/^\$\$/, "")}</span>
+                </td>
+                <td style={{ padding: "7px 14px", color: "var(--text-secondary)", borderBottom: "1px solid var(--border-subtle)" }}>
+                  {v.datatype || "String"}{v.precision ? `(${v.precision})` : ""}
+                </td>
+                <td style={{ padding: "7px 14px", borderBottom: "1px solid var(--border-subtle)", color: v.defaultValue ? "var(--text-primary)" : "var(--text-muted)" }}>
+                  {v.defaultValue || "(none)"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

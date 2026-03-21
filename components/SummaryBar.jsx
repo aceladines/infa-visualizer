@@ -21,10 +21,11 @@ export default function SummaryBar({ data }) {
             alignItems: "center",
             gap: 8,
             padding: "8px 14px",
-            background: "#0a0a0f",
-            border: "1px solid #1e1e2e",
+            background: "var(--bg-tertiary)",
+            border: "1px solid var(--border-primary)",
             borderRadius: 8,
             minWidth: 100,
+            boxShadow: "var(--shadow-sm)",
           }}
         >
           <span style={{ fontSize: 20, fontWeight: 700, color: s.color, fontFamily: FONT_MONO }}>
@@ -33,7 +34,7 @@ export default function SummaryBar({ data }) {
           <span
             style={{
               fontSize: 10,
-              color: "#6b7280",
+              color: "var(--text-secondary)",
               fontFamily: FONT_MONO,
               textTransform: "uppercase",
               letterSpacing: "0.05em",

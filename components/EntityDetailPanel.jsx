@@ -1,21 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { FONT_MONO } from "@/lib/constants";
+import { FONT_MONO, getTypeColors } from "@/lib/constants";
+import { useTheme } from "@/lib/ThemeContext";
 import { DBIcon } from "@/components/icons";
-
-const COLOR_MAP = {
-  source: { main: "#10b981", bg: "#0a2e1f", text: "#6ee7b7", badge: "#065f46", sub: "#064e3b" },
-  target: { main: "#a78bfa", bg: "#1e1434", text: "#c4b5fd", badge: "#4c1d95", sub: "#3b0764" },
-};
 
 export default function EntityDetailPanel({ entities, type }) {
   const [expanded, setExpanded] = useState(null);
-  const color = COLOR_MAP[type] || COLOR_MAP.source;
+  const { theme } = useTheme();
+  const typeColors = getTypeColors(theme);
+  const color = type === "target" ? typeColors.target : typeColors.source;
 
   if (entities.length === 0) {
     return (
-      <div style={{ padding: 32, textAlign: "center", color: "#4a4a6a", fontFamily: FONT_MONO, fontSize: 13 }}>
+      <div style={{ padding: 32, textAlign: "center", color: "var(--text-muted)", fontFamily: FONT_MONO, fontSize: 13 }}>
         No {type}s found in this export
       </div>
     );
@@ -24,7 +22,7 @@ export default function EntityDetailPanel({ entities, type }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       {entities.map((entity, i) => (
-        <div key={i} style={{ border: "1px solid #1e1e2e", borderRadius: 10, overflow: "hidden" }}>
+        <div key={i} style={{ border: "1px solid var(--border-primary)", borderRadius: 10, overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
           {/* Accordion header */}
           <div
             onClick={() => setExpanded(expanded === i ? null : i)}
@@ -33,12 +31,12 @@ export default function EntityDetailPanel({ entities, type }) {
               alignItems: "center",
               gap: 10,
               padding: "12px 16px",
-              background: expanded === i ? color.bg : "#0a0a0f",
+              background: expanded === i ? color.bg : "var(--bg-tertiary)",
               cursor: "pointer",
               transition: "background 0.2s",
             }}
           >
-            <span style={{ color: color.main }}>
+            <span style={{ color: color.border }}>
               <DBIcon />
             </span>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -53,7 +51,7 @@ export default function EntityDetailPanel({ entities, type }) {
                     </span>
                   )}
                   {entity.ownerName && (
-                    <span style={{ fontSize: 9, background: color.sub, color: color.text + "99", padding: "1px 6px", borderRadius: 3, fontFamily: FONT_MONO }}>
+                    <span style={{ fontSize: 9, background: color.sub, color: color.text, padding: "1px 6px", borderRadius: 3, fontFamily: FONT_MONO, opacity: 0.8 }}>
                       {entity.ownerName}
                     </span>
                   )}
@@ -65,12 +63,12 @@ export default function EntityDetailPanel({ entities, type }) {
                 {entity.databaseType}
               </span>
             )}
-            <span style={{ color: "#4a4a6a", fontSize: 11, fontFamily: FONT_MONO }}>
+            <span style={{ color: "var(--text-muted)", fontSize: 11, fontFamily: FONT_MONO }}>
               {entity.fields.length} cols
             </span>
             <span
               style={{
-                color: "#4a4a6a",
+                color: "var(--text-muted)",
                 transform: expanded === i ? "rotate(180deg)" : "rotate(0)",
                 transition: "transform 0.2s",
               }}
@@ -81,7 +79,7 @@ export default function EntityDetailPanel({ entities, type }) {
 
           {/* Description */}
           {entity.description && expanded === i && (
-            <div style={{ padding: "6px 16px 0", fontSize: 10, color: "#6b7280", fontFamily: FONT_MONO, background: color.bg }}>
+            <div style={{ padding: "6px 16px 0", fontSize: 10, color: "var(--text-secondary)", fontFamily: FONT_MONO, background: color.bg }}>
               {entity.description}
             </div>
           )}
@@ -91,16 +89,16 @@ export default function EntityDetailPanel({ entities, type }) {
             <div style={{ overflow: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11, fontFamily: FONT_MONO }}>
                 <thead>
-                  <tr style={{ background: "#0d0d15" }}>
+                  <tr style={{ background: "var(--bg-table-header)" }}>
                     {["#", "Field", "Datatype", "Precision", "Scale", "Key", "Nullable"].map((h) => (
                       <th
                         key={h}
                         style={{
                           padding: "8px 12px",
                           textAlign: "left",
-                          color: "#4a4a6a",
+                          color: "var(--text-muted)",
                           fontWeight: 500,
-                          borderBottom: "1px solid #1e1e2e",
+                          borderBottom: "1px solid var(--border-primary)",
                           fontSize: 9,
                           textTransform: "uppercase",
                           letterSpacing: "0.06em",
@@ -113,23 +111,23 @@ export default function EntityDetailPanel({ entities, type }) {
                 </thead>
                 <tbody>
                   {entity.fields.map((f, fi) => (
-                    <tr key={fi} style={{ background: fi % 2 === 0 ? "#08080d" : "#0b0b12" }}>
-                      <td style={{ padding: "6px 12px", color: "#4a4a6a", borderBottom: "1px solid #12121f" }}>
+                    <tr key={fi} style={{ background: fi % 2 === 0 ? "var(--bg-table-even)" : "var(--bg-table-odd)" }}>
+                      <td style={{ padding: "6px 12px", color: "var(--text-muted)", borderBottom: "1px solid var(--border-subtle)" }}>
                         {f.fieldNumber || fi + 1}
                       </td>
-                      <td style={{ padding: "6px 12px", color: "#e2e8f0", borderBottom: "1px solid #12121f", fontWeight: 500 }}>
+                      <td style={{ padding: "6px 12px", color: "var(--text-primary)", borderBottom: "1px solid var(--border-subtle)", fontWeight: 500 }}>
                         {f.name}
                       </td>
-                      <td style={{ padding: "6px 12px", color: color.text, borderBottom: "1px solid #12121f" }}>
+                      <td style={{ padding: "6px 12px", color: color.text, borderBottom: "1px solid var(--border-subtle)" }}>
                         {f.datatype}
                       </td>
-                      <td style={{ padding: "6px 12px", color: "#6b7280", borderBottom: "1px solid #12121f" }}>
+                      <td style={{ padding: "6px 12px", color: "var(--text-secondary)", borderBottom: "1px solid var(--border-subtle)" }}>
                         {f.precision || "—"}
                       </td>
-                      <td style={{ padding: "6px 12px", color: "#6b7280", borderBottom: "1px solid #12121f" }}>
+                      <td style={{ padding: "6px 12px", color: "var(--text-secondary)", borderBottom: "1px solid var(--border-subtle)" }}>
                         {f.scale || "—"}
                       </td>
-                      <td style={{ padding: "6px 12px", borderBottom: "1px solid #12121f" }}>
+                      <td style={{ padding: "6px 12px", borderBottom: "1px solid var(--border-subtle)" }}>
                         {f.keyType && f.keyType !== "NOT A KEY" ? (
                           <span style={{ fontSize: 9, background: "#78350f", color: "#fcd34d", padding: "2px 6px", borderRadius: 3 }}>
                             {f.keyType}
@@ -138,7 +136,7 @@ export default function EntityDetailPanel({ entities, type }) {
                           "—"
                         )}
                       </td>
-                      <td style={{ padding: "6px 12px", color: f.nullable === "NOTNULL" ? "#f87171" : "#6b7280", borderBottom: "1px solid #12121f" }}>
+                      <td style={{ padding: "6px 12px", color: f.nullable === "NOTNULL" ? "#f87171" : "var(--text-secondary)", borderBottom: "1px solid var(--border-subtle)" }}>
                         {f.nullable === "NOTNULL" ? "NOT NULL" : f.nullable || "—"}
                       </td>
                     </tr>
