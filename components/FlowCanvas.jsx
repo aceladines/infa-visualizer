@@ -4,8 +4,8 @@ import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { buildFlowGraph, assignLayers, computeLayout } from "@/lib/buildFlowGraph";
 import { TYPE_COLORS, FONT_MONO, ZOOM_CONFIG } from "@/lib/constants";
 
-export default function FlowCanvas({ data, onNodeClick }) {
-  const graph = useMemo(() => buildFlowGraph(data), [data]);
+export default function FlowCanvas({ data, selectedMapping, onNodeClick }) {
+  const graph = useMemo(() => buildFlowGraph(data, selectedMapping), [data, selectedMapping]);
   const layers = useMemo(() => assignLayers(graph.nodes, graph.edges), [graph]);
   const layout = useMemo(() => computeLayout(graph.nodes, layers), [graph, layers]);
 

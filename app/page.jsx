@@ -90,7 +90,7 @@ export default function HomePage() {
 
           {/* Tab panels */}
           {tab === "flow" && (
-            <FlowCanvas data={data} onNodeClick={setSelectedNode} />
+            <FlowCanvas data={data} selectedMapping={selectedMapping} onNodeClick={setSelectedNode} />
           )}
           {tab === "workflows" && <WorkflowOverview data={data} />}
           {tab === "mapping" && (
