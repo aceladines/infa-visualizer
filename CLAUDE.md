@@ -30,17 +30,27 @@ Three layers:
 
 ## Informatica XML Layered Model
 
-The parser interprets PowerCenter XML as four semantic layers. Understanding these is critical when modifying parsing or graph-building logic.
+The parser interprets PowerCenter XML as five semantic layers. Understanding these is critical when modifying parsing or graph-building logic.
 
-1. **Definitions layer** — `SOURCE`, `TARGET`, reusable `TRANSFORMATION`, `CONFIG` define schemas and logic templates at the FOLDER level. These are *not* instances.
-2. **Mapping layer** — `MAPPING` is a logical dataflow graph. `INSTANCE` nodes reference definitions (via `TRANSFORMATION_NAME`). `CONNECTOR` edges define port-level lineage between instances. A mapping may have multiple source branches and multiple targets. Mapplets (`MAPPLET`) are encapsulated sub-graphs; they appear as single nodes in the parent mapping, not expanded.
-3. **Session layer** — `SESSION` executes one mapping. It provides runtime settings, connection bindings, reader/writer config, and overrides. It does *not* define the core business transformation logic.
-4. **Workflow layer** — `WORKFLOW` orchestrates `TASK`s and `TASKINSTANCE`s. `WORKFLOWLINK` defines task dependency and conditional flow.
+1. **Definitions layer** — `SOURCE`, `TARGET`, reusable `TRANSFORMATION`, `CONFIG` define metadata objects at the FOLDER level. These are definitions, *not* execution order. A physical table may appear as a `TARGET` in one mapping and as a `SOURCE` in another.
+2. **Mapping layer** — `MAPPING` is a directed dataflow graph. `INSTANCE` nodes represent uses of sources, targets, and transformations. `CONNECTOR` edges define the authoritative field/port lineage. Do not infer lineage from name similarity or transformation proximity. A mapping may contain multiple source branches, intermediate stage sources, union/sorter/custom transformations, and multiple targets. Mapplets (`MAPPLET`) are encapsulated sub-graphs appearing as single nodes in the parent mapping.
+3. **Field lineage resolution** — For any target field, determine lineage by walking `CONNECTOR` chains. Treat `CONNECTOR` lineage as authoritative. Classify lineage type per field:
+   - `DIRECT_PASS_THROUGH` — field flows unchanged
+   - `DERIVED_EXPRESSION` — output from expression/calculation
+   - `PARAMETER_DRIVEN` — expression references `$$` parameters
+   - `CONSTANT` — literal string or number
+   - `SEQUENCE_GENERATED` — from Sequence Generator transformation
+   - `CUSTOM_TRANSFORMATION_OUTPUT` — from Custom/Stored Proc transformation
+   - `UNKNOWN` — cannot determine (e.g., SQL override on Source Qualifier)
+4. **Session layer** — `SESSION` executes one mapping. It provides runtime settings, connection bindings, reader/writer config, and overrides. It does *not* define the core business transformation logic unless there is an explicit override.
+5. **Workflow layer** — `WORKFLOW` is a directed execution graph (not a flat list). `TASK`/`TASKINSTANCE` are nodes. `WORKFLOWLINK` is the authoritative execution dependency edge. Reconstruct execution by starting from `Start`, following `FROMTASK→TOTASK`, preserving link conditions, and allowing parallel branches. Produce a staged topological order rather than collapsing to one linear chain. Command tasks (truncate) are often prerequisites for downstream sessions.
 
 **Critical assumptions to avoid:**
 - Do NOT assume one session = one source table = one target table.
+- Do NOT assume one workflow = one linear sequence (parallel branches exist).
+- Do NOT assume all target fields come from source columns — they may come from parameters, constants, sequences, or expressions.
 - Do NOT assume a `SOURCE` is always a raw source-system table — a stage table may appear as both a `TARGET` and later as a `SOURCE`.
-- Treat mappings as graphs, not lists. Field lineage can traverse multiple transformation hops (Source → SQ → Expression → Router → Aggregator → Target).
+- Treat mappings as dataflow graphs and workflows as execution graphs, not lists.
 - Instance names (in `CONNECTOR`) reference `INSTANCE.NAME`, not definition names. Classification must use `INSTANCE.TYPE` (e.g., "Source Definition", "Target Definition", "Mapplet"), not name matching against global SOURCE/TARGET lists.
 - Scoping matters: use `:scope >` when querying `TRANSFORMATION`, `INSTANCE`, `CONNECTOR` within a `MAPPING`/`MAPPLET` to avoid picking up elements from nested sub-structures.
 

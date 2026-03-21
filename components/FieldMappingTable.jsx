@@ -28,6 +28,7 @@ export default function FieldMappingTable({ data, selectedMapping }) {
           (m.transformation || "").toLowerCase().includes(q) ||
           (m.sourceDB || "").toLowerCase().includes(q) ||
           (m.targetDB || "").toLowerCase().includes(q) ||
+          (m.lineageType || "").toLowerCase().includes(q) ||
           (m.transformationSteps || []).some(
             (s) => (s.expression || "").toLowerCase().includes(q) || (s.instance || "").toLowerCase().includes(q)
           )
@@ -87,6 +88,7 @@ export default function FieldMappingTable({ data, selectedMapping }) {
     { key: "sourceField", label: "Source Field" },
     { key: "targetField", label: "Target Field" },
     { key: "transformation", label: "Via" },
+    { key: "lineageType", label: "Type" },
   ];
 
   return (
@@ -312,10 +314,13 @@ export default function FieldMappingTable({ data, selectedMapping }) {
                               )}
                             </div>
                           </td>
+                          <td style={{ padding: "8px 14px", borderBottom: isExpanded ? "none" : "1px solid #12121f" }}>
+                            <LineageBadge type={fm.lineageType} />
+                          </td>
                         </tr>
                         {isExpanded && (
                           <tr>
-                            <td colSpan={3} style={{ padding: 0, borderBottom: "1px solid #12121f" }}>
+                            <td colSpan={4} style={{ padding: 0, borderBottom: "1px solid #12121f" }}>
                               <TransformationPipeline steps={fm.transformationSteps} sourceField={fm.sourceField} targetField={fm.targetField} />
                             </td>
                           </tr>
@@ -330,6 +335,38 @@ export default function FieldMappingTable({ data, selectedMapping }) {
         ))
       )}
     </div>
+  );
+}
+
+/** @private Lineage type badge colors */
+const LINEAGE_COLORS = {
+  DIRECT_PASS_THROUGH: { label: "PASS", color: "#6ee7b7", bg: "#065f46" },
+  DERIVED_EXPRESSION: { label: "EXPR", color: "#f59e0b", bg: "#78350f" },
+  PARAMETER_DRIVEN: { label: "$", color: "#c084fc", bg: "#581c87" },
+  CONSTANT: { label: "CONST", color: "#fcd34d", bg: "#713f12" },
+  SEQUENCE_GENERATED: { label: "SEQ", color: "#60a5fa", bg: "#1e3a5f" },
+  CUSTOM_TRANSFORMATION_OUTPUT: { label: "CUSTOM", color: "#fb923c", bg: "#7c2d12" },
+  UNKNOWN: { label: "?", color: "#6b7280", bg: "#1e1e2e" },
+};
+
+function LineageBadge({ type }) {
+  const style = LINEAGE_COLORS[type] || LINEAGE_COLORS.UNKNOWN;
+  return (
+    <span
+      style={{
+        fontSize: 8,
+        background: style.bg,
+        color: style.color,
+        padding: "2px 6px",
+        borderRadius: 3,
+        fontFamily: FONT_MONO,
+        fontWeight: 600,
+        letterSpacing: "0.03em",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {style.label}
+    </span>
   );
 }
 
