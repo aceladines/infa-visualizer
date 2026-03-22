@@ -4,7 +4,7 @@ import React, { useState, useMemo } from "react";
 import { FONT_MONO, getTypeColors } from "@/lib/constants";
 import { useTheme } from "@/lib/ThemeContext";
 import { DBIcon } from "@/components/icons";
-import { SortArrow } from "@/components/ui";
+import { SortArrow, ExpandableText, TextViewerModal } from "@/components/ui";
 
 export default function FieldMappingTable({ data, selectedMapping }) {
   const [search, setSearch] = useState("");
@@ -12,6 +12,7 @@ export default function FieldMappingTable({ data, selectedMapping }) {
   const [sortDir, setSortDir] = useState("asc");
   const [collapsed, setCollapsed] = useState({});
   const [expandedRows, setExpandedRows] = useState({});
+  const [viewerText, setViewerText] = useState(null);
   const { theme } = useTheme();
   const typeColors = getTypeColors(theme);
 
@@ -325,7 +326,7 @@ export default function FieldMappingTable({ data, selectedMapping }) {
                         {isExpanded && (
                           <tr>
                             <td colSpan={4} style={{ padding: 0, borderBottom: "1px solid var(--border-subtle)" }}>
-                              <TransformationPipeline steps={fm.transformationSteps} sourceField={fm.sourceField} targetField={fm.targetField} theme={theme} typeColors={typeColors} />
+                              <TransformationPipeline steps={fm.transformationSteps} sourceField={fm.sourceField} targetField={fm.targetField} theme={theme} typeColors={typeColors} onViewText={setViewerText} />
                             </td>
                           </tr>
                         )}
@@ -337,6 +338,14 @@ export default function FieldMappingTable({ data, selectedMapping }) {
             </div>}
           </div>
         ))
+      )}
+
+      {viewerText && (
+        <TextViewerModal
+          title={viewerText.title}
+          text={viewerText.text}
+          onClose={() => setViewerText(null)}
+        />
       )}
     </div>
   );
@@ -510,7 +519,7 @@ function ExpressionDisplay({ expression, theme }) {
 }
 
 /** @private Transformation pipeline visualization for expanded rows */
-function TransformationPipeline({ steps, sourceField, targetField, theme, typeColors }) {
+function TransformationPipeline({ steps, sourceField, targetField, theme, typeColors, onViewText }) {
   if (!steps || steps.length === 0) return null;
 
   return (
@@ -565,10 +574,15 @@ function TransformationPipeline({ steps, sourceField, targetField, theme, typeCo
                 </div>
                 {/* Expression body */}
                 {step.expression && (
-                  <div style={{
-                    padding: "6px 10px 8px", borderTop: "1px solid var(--border-subtle)",
-                    fontSize: 11, fontFamily: FONT_MONO, lineHeight: 1.6, wordBreak: "break-all",
-                  }}>
+                  <div
+                    onClick={(e) => { e.stopPropagation(); onViewText({ title: `${step.instance} — Expression`, text: step.expression }); }}
+                    style={{
+                      padding: "6px 10px 8px", borderTop: "1px solid var(--border-subtle)",
+                      fontSize: 11, fontFamily: FONT_MONO, lineHeight: 1.6, wordBreak: "break-all",
+                      cursor: "pointer",
+                    }}
+                    title="Click to view full expression"
+                  >
                     <ExpressionDisplay expression={step.expression} theme={theme} />
                   </div>
                 )}
@@ -581,8 +595,8 @@ function TransformationPipeline({ steps, sourceField, targetField, theme, typeCo
                           FILTER
                         </span>
                         <span style={{ color: "var(--text-secondary)" }}>{f.type}: </span>
-                        <span style={{ color: "#fca5a5" }} title={f.value}>
-                          {f.value.length > 80 ? f.value.slice(0, 78) + "\u2026" : f.value}
+                        <span style={{ color: "#fca5a5", flex: 1, minWidth: 0, overflow: "hidden" }}>
+                          <ExpandableText text={f.value} onExpand={() => onViewText({ title: `${f.type} — Filter`, text: f.value })} />
                         </span>
                       </div>
                     ))}
@@ -595,8 +609,8 @@ function TransformationPipeline({ steps, sourceField, targetField, theme, typeCo
                       <span style={{ fontSize: 8, background: "#7c2d12", color: "#fb923c", padding: "1px 5px", borderRadius: 3, fontWeight: 600, letterSpacing: "0.03em", marginRight: 6 }}>
                         ROUTE
                       </span>
-                      <span style={{ color: "#fb923c" }} title={step.routerCondition}>
-                        {step.routerCondition.length > 80 ? step.routerCondition.slice(0, 78) + "\u2026" : step.routerCondition}
+                      <span style={{ color: "#fb923c", flex: 1, minWidth: 0, overflow: "hidden" }}>
+                        <ExpandableText text={step.routerCondition} onExpand={() => onViewText({ title: "Router Condition", text: step.routerCondition })} />
                       </span>
                     </div>
                   </div>

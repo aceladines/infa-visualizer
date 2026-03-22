@@ -1,11 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { FONT_MONO, getTypeColors } from "@/lib/constants";
 import { useTheme } from "@/lib/ThemeContext";
 import { CloseIcon } from "@/components/icons";
+import { ExpandableText, TextViewerModal } from "@/components/ui";
 import styles from "@/styles/ui.module.css";
 
 export default function NodeDetailDrawer({ node, data, onClose }) {
+  const [viewerText, setViewerText] = useState(null);
+
   if (!node) return null;
 
   const { theme } = useTheme();
@@ -16,10 +20,13 @@ export default function NodeDetailDrawer({ node, data, onClose }) {
   // Gather inbound/outbound connections
   const inbound = [];
   const outbound = [];
+  const rawName = node.instanceName || node.id;
   data.mappings.forEach((m) => {
-    m.connectors.forEach((c) => {
-      if (c.toInstance === node.id) inbound.push(c);
-      if (c.fromInstance === node.id) outbound.push(c);
+    // When scoped to a specific mapping (all-mappings view), only check that mapping
+    if (node.mappingName && node.mappingName !== m.name) return;
+    (m.connectors || []).forEach((c) => {
+      if (c.toInstance === rawName) inbound.push(c);
+      if (c.fromInstance === rawName) outbound.push(c);
     });
   });
 
@@ -124,7 +131,11 @@ export default function NodeDetailDrawer({ node, data, onClose }) {
               {tableAttrs.map((a, ai) => (
                 <div key={ai} style={{ display: "flex", gap: 8, padding: "6px 10px", background: ai % 2 === 0 ? "var(--bg-table-even)" : "var(--bg-table-odd)", borderBottom: "1px solid var(--border-subtle)", fontSize: 10, fontFamily: FONT_MONO }}>
                   <span style={{ color: "var(--text-secondary)", minWidth: 120, flexShrink: 0 }}>{a.name}</span>
-                  <span style={{ color: "var(--text-primary)", wordBreak: "break-all" }}>{a.value || "—"}</span>
+                  <span style={{ color: "var(--text-primary)", flex: 1, minWidth: 0, overflow: "hidden" }}>
+                    {a.value ? (
+                      <ExpandableText text={a.value} onExpand={() => setViewerText({ title: a.name, text: a.value })} />
+                    ) : "—"}
+                  </span>
                 </div>
               ))}
             </div>
@@ -136,7 +147,15 @@ export default function NodeDetailDrawer({ node, data, onClose }) {
           <div>
             <SectionLabel>{fields.length} Fields / Ports</SectionLabel>
             <div style={{ border: "1px solid var(--border-primary)", borderRadius: 8, overflow: "hidden" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11, fontFamily: FONT_MONO }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11, fontFamily: FONT_MONO, tableLayout: "fixed" }}>
+                <colgroup>
+                  <col style={{ width: "6%" }} />
+                  <col style={{ width: "22%" }} />
+                  <col style={{ width: "14%" }} />
+                  <col style={{ width: "10%" }} />
+                  <col style={{ width: "16%" }} />
+                  <col style={{ width: "32%" }} />
+                </colgroup>
                 <thead>
                   <tr style={{ background: "var(--bg-table-header)" }}>
                     {(isTable
@@ -149,8 +168,8 @@ export default function NodeDetailDrawer({ node, data, onClose }) {
                   {fields.map((f, fi) => (
                     <tr key={fi} style={{ background: fi % 2 === 0 ? "var(--bg-table-even)" : "var(--bg-table-odd)" }}>
                       <TD muted>{f.fieldNumber || fi + 1}</TD>
-                      <TD bold>{f.name}</TD>
-                      <TD style={{ color: colors.text }}>{f.datatype || "—"}</TD>
+                      <TD bold title={f.name}>{f.name}</TD>
+                      <TD title={f.datatype} style={{ color: colors.text }}>{f.datatype || "—"}</TD>
                       <TD muted>{f.precision ? `${f.precision}${f.scale && f.scale !== "0" ? `,${f.scale}` : ""}` : "—"}</TD>
                       {isTable ? (
                         <>
@@ -160,7 +179,11 @@ export default function NodeDetailDrawer({ node, data, onClose }) {
                       ) : (
                         <>
                           <TD>{f.porttype ? <Badge bg={f.porttype.includes("OUTPUT") ? typeColors.transform.badge : "var(--border-primary)"} color={f.porttype.includes("OUTPUT") ? typeColors.transform.text : "var(--text-secondary)"} small>{f.porttype}</Badge> : "—"}</TD>
-                          <TD style={{ color: "#f59e0b", fontSize: 10, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={f.expression || ""}>{f.expression || "—"}</TD>
+                          <TD style={{ color: "#f59e0b", fontSize: 10 }}>
+                            {f.expression ? (
+                              <ExpandableText text={f.expression} onExpand={() => setViewerText({ title: `${f.name} — Expression`, text: f.expression })} />
+                            ) : "—"}
+                          </TD>
                         </>
                       )}
                     </tr>
@@ -199,6 +222,15 @@ export default function NodeDetailDrawer({ node, data, onClose }) {
           </div>
         )}
       </div>
+
+      {/* ── Text Viewer Modal ──────────────────────────────── */}
+      {viewerText && (
+        <TextViewerModal
+          title={viewerText.title}
+          text={viewerText.text}
+          onClose={() => setViewerText(null)}
+        />
+      )}
     </div>
   );
 }
@@ -252,6 +284,7 @@ function TH({ children }) {
 
 function TD({ children, muted, bold, style = {}, title }) {
   return (
-    <td title={title} style={{ padding: "5px 10px", borderBottom: "1px solid var(--border-subtle)", color: muted ? "var(--text-muted)" : bold ? "var(--text-primary)" : undefined, fontWeight: bold ? 500 : undefined, ...style }}>{children}</td>
+    <td title={title} style={{ padding: "5px 10px", borderBottom: "1px solid var(--border-subtle)", color: muted ? "var(--text-muted)" : bold ? "var(--text-primary)" : undefined, fontWeight: bold ? 500 : undefined, overflow: "hidden", textOverflow: "ellipsis", ...style }}>{children}</td>
   );
 }
+

@@ -41,6 +41,71 @@
   border-radius: 3px;
 }
 
+/* ── Text Viewer Modal ───────────────────────────────────── */
+.textViewerBackdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.textViewerModal {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+  width: 90vw;
+  max-width: 720px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  animation: scaleIn 0.15s ease-out;
+}
+
+.textViewerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-primary);
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.textViewerBody {
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
+}
+
+.textViewerBody::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.textViewerBody::-webkit-scrollbar-track {
+  background: transparent;
+}
+.textViewerBody::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 3px;
+}
+
+.textViewerPre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
 /* ── Animations ──────────────────────────────────────────── */
 @keyframes fadeIn {
   from { opacity: 0; }
@@ -50,4 +115,9 @@
 @keyframes slideIn {
   from { transform: translateX(100%); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }

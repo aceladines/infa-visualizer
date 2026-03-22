@@ -2,6 +2,7 @@
   "name": "infa-visualizer",
   "version": "1.0.0",
   "description": "Informatica PowerCenter XML Workflow Visualizer & Field Mapper",
+  "license": "MIT",
   "private": true,
   "scripts": {
     "dev": "next dev",

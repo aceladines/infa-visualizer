@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { FONT_MONO, getTaskStyles } from "@/lib/constants";
 import { useTheme } from "@/lib/ThemeContext";
 import { WfIcon } from "@/components/icons";
+import { ExpandableText, TextViewerModal } from "@/components/ui";
 
 // ─── Build topological stages from workflow links ─────────────────
 
@@ -88,6 +89,7 @@ function getTaskStyle(type, taskStyles) {
 
 export default function WorkflowOverview({ data }) {
   const [expanded, setExpanded] = useState(null);
+  const [viewerText, setViewerText] = useState(null);
   const { theme } = useTheme();
   const taskStyles = getTaskStyles(theme);
 
@@ -159,17 +161,25 @@ export default function WorkflowOverview({ data }) {
             </div>
 
             {/* Expanded: staged execution graph */}
-            {expanded === wi && <WorkflowBody wf={wf} sessions={data.sessions} taskStyles={taskStyles} theme={theme} />}
+            {expanded === wi && <WorkflowBody wf={wf} sessions={data.sessions} taskStyles={taskStyles} theme={theme} onViewText={setViewerText} />}
           </div>
         );
       })}
+
+      {viewerText && (
+        <TextViewerModal
+          title={viewerText.title}
+          text={viewerText.text}
+          onClose={() => setViewerText(null)}
+        />
+      )}
     </div>
   );
 }
 
 // ─── Expanded body: staged execution graph ────────────────────────
 
-function WorkflowBody({ wf, sessions, taskStyles, theme }) {
+function WorkflowBody({ wf, sessions, taskStyles, theme, onViewText }) {
   const { stages, auxiliaryTasks } = useMemo(() => buildStages(wf, sessions), [wf, sessions]);
 
   if (stages.length === 0 && auxiliaryTasks.length === 0) {
@@ -191,7 +201,7 @@ function WorkflowBody({ wf, sessions, taskStyles, theme }) {
           {stages.map((stage, si) => (
             <div key={si}>
               {/* Connector between stages */}
-              {si > 0 && <StageConnector stage={stage} theme={theme} />}
+              {si > 0 && <StageConnector stage={stage} theme={theme} onViewText={onViewText} />}
 
               {/* Stage section */}
               <div style={{
@@ -232,7 +242,7 @@ function WorkflowBody({ wf, sessions, taskStyles, theme }) {
                 {/* Tasks in this stage */}
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap", padding: "12px 16px" }}>
                   {stage.map((task, ti) => (
-                    <TaskCard key={ti} task={task} taskStyles={taskStyles} />
+                    <TaskCard key={ti} task={task} taskStyles={taskStyles} onViewText={onViewText} />
                   ))}
                 </div>
               </div>
@@ -270,7 +280,7 @@ function WorkflowBody({ wf, sessions, taskStyles, theme }) {
 
 // ─── Stage connector (line + conditions between stages) ───────────
 
-function StageConnector({ stage, theme }) {
+function StageConnector({ stage, theme, onViewText }) {
   // Collect non-trivial conditions from incoming edges
   const conditions = [];
   const seen = new Set();
@@ -295,7 +305,6 @@ function StageConnector({ stage, theme }) {
           {conditions.map((c, ci) => (
             <div
               key={ci}
-              title={c.condition}
               style={{
                 display: "flex", alignItems: "center", gap: 6,
                 fontSize: 10, fontFamily: FONT_MONO,
@@ -309,11 +318,8 @@ function StageConnector({ stage, theme }) {
               }}>
                 IF
               </span>
-              <span style={{
-                color: "#f59e0b", maxWidth: 600, overflow: "hidden",
-                textOverflow: "ellipsis", whiteSpace: "nowrap",
-              }}>
-                {c.condition.length > 120 ? c.condition.slice(0, 118) + "…" : c.condition}
+              <span style={{ color: "#f59e0b", flex: 1, minWidth: 0, overflow: "hidden" }}>
+                <ExpandableText text={c.condition} onExpand={() => onViewText({ title: `Condition: ${c.from} → ${c.to}`, text: c.condition })} />
               </span>
             </div>
           ))}
@@ -327,7 +333,7 @@ function StageConnector({ stage, theme }) {
 
 // ─── Task card ────────────────────────────────────────────────────
 
-function TaskCard({ task, taskStyles }) {
+function TaskCard({ task, taskStyles, onViewText }) {
   const style = getTaskStyle(task.type, taskStyles);
 
   return (
@@ -366,8 +372,11 @@ function TaskCard({ task, taskStyles }) {
           {task.incoming
             .filter((i) => i.condition && i.condition !== "1=1")
             .map((inc, ii) => (
-              <div key={ii} style={{ fontSize: 10, color: "#f59e0b", fontFamily: FONT_MONO, opacity: 0.8 }} title={inc.condition}>
-                ← {inc.from}: {inc.condition.length > 60 ? inc.condition.slice(0, 58) + "…" : inc.condition}
+              <div key={ii} style={{ fontSize: 10, color: "#f59e0b", fontFamily: FONT_MONO, opacity: 0.8, display: "flex", alignItems: "center", gap: 4, minWidth: 0 }}>
+                <span style={{ flexShrink: 0 }}>← {inc.from}:</span>
+                <span style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+                  <ExpandableText text={inc.condition} onExpand={() => onViewText({ title: `Condition: ${inc.from} → ${task.name}`, text: inc.condition })} />
+                </span>
               </div>
             ))}
         </div>
