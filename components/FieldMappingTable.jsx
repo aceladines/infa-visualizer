@@ -364,6 +364,8 @@ const LINEAGE_COLORS = {
   SEQUENCE_GENERATED: { label: "SEQ", color: "#60a5fa", bg: "#1e3a5f" },
   CUSTOM_TRANSFORMATION_OUTPUT: { label: "CUSTOM", color: "#fb923c", bg: "#7c2d12" },
   NOT_CARRIED_BY_BRANCH: { label: "NOT CARRIED", color: "#f87171", bg: "#7f1d1d" },
+  NOT_USED_FOR_TARGET: { label: "UNUSED", color: "#94a3b8", bg: "#334155" },
+  INVALID_FANOUT: { label: "FANOUT", color: "#f87171", bg: "#7f1d1d" },
   UNKNOWN: { label: "?", color: "#6b7280", bg: "#1e1e2e" },
 };
 

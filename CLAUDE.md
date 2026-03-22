@@ -38,6 +38,17 @@ The parser interprets PowerCenter XML as twelve semantic layers. Understanding t
 
 3. **Field lineage resolution rules** — Resolve target lineage by walking `CONNECTOR` chains backward from the target port. If lineage passes through Expression / Lookup / Mapplet / Custom / Sorter / other transformations, recursively trace upstream ports until reaching: (a) a source field, (b) a mapping variable/parameter, (c) a literal constant, (d) a sequence-generated field, or (e) a lookup return value. Treat `CONNECTOR` lineage as authoritative over semantic similarity. Never map source-to-target by guessing. Expression-aware port resolution ensures only referenced input ports produce edges to output ports (eliminates false source attributions). Intra-instance port traversal connects input ports to output ports within transformations where names differ (e.g., Lookup input key → return value).
 
+   **Enhanced field mapping resolution rule:**
+   - Resolve lineage per target field, not per shared path.
+   - Start from the target field's immediate upstream output port.
+   - Inspect that output port's exact dependencies: direct input symbol, explicit expression references, lookup return value, parameter / constant / sequence.
+   - Continue tracing recursively until reaching a valid origin.
+   - Do not propagate lineage through joiners or sorters unless the field is explicitly passed or referenced by the producing output.
+   - If a source field is present on the path but not referenced by the producing output, classify it as `NOT_USED_FOR_TARGET`.
+   - If the same source field appears to map to many unrelated targets with no explicit field-level evidence, suppress those mappings as `INVALID_FANOUT`.
+   - Preserve both: technical lineage (all transformation hops) and business/source lineage (deepest valid source/lookup/parameter origin).
+   - Backward validation: after forward BFS, each mapping record is validated by walking its transformation steps backward from the target and verifying each hop's output port actually depends on the traced input.
+
 4. **Output field classification** — For every output field, classify as one of:
    - `DIRECT_PASS_THROUGH` — field flows unchanged
    - `EXPRESSION_DERIVED` — output from expression/calculation
@@ -49,6 +60,8 @@ The parser interprets PowerCenter XML as twelve semantic layers. Understanding t
    - `SEQUENCE_GENERATED` — from Sequence Generator transformation
    - `CUSTOM_TRANSFORMATION_OUTPUT` — from Custom/Stored Proc transformation
    - `NOT_CARRIED_BY_BRANCH` — source field present upstream but not propagated through a custom/union branch
+   - `NOT_USED_FOR_TARGET` — source field present on the transformation path but not referenced by the producing output port (backward validation failure)
+   - `INVALID_FANOUT` — same source field mapped to many unrelated targets without explicit per-field expression evidence
    - `UNKNOWN` — cannot determine (e.g., SQL override on Source Qualifier)
 
 5. **Rule for OWNER-like fields** — Do not assume an output field has compositional structure such as `<field1>_<field2>` unless an explicit `EXPRESSION` shows concatenation. If a field is returned by a lookup, describe it as a scalar lookup return value, not as a concatenation. If a field is output from a mapplet, explain which nested transformation produces it, whether it is a lookup return, pass-through, or expression-derived, and any lookup condition or filter affecting it.
@@ -105,6 +118,14 @@ The parser interprets PowerCenter XML as twelve semantic layers. Understanding t
 - Sorter lineage transparency: sorters only pass through same-named ports (field identity preserved, no new mappings created)
 - Confidence level classification (HIGH/MEDIUM/LOW/UNKNOWN) on each field mapping record
 - Evidence chain tracking: human-readable backward chain string on each mapping record
+- Global transformation definition fallback: per-mapping xformDefs falls through to global definitions collected from all mappings/mapplets, preventing missing mappings from reusable transformations
+- Backward validation pass: after forward BFS, each mapping's transformation steps are walked backward from the target to verify the producing output port actually depends on the traced source field
+- Dual lineage tracking: each mapping record carries both technical lineage (all transformation hops) and business lineage (deepest valid origin — source field, lookup return, parameter, constant, or sequence)
+- NOT_USED_FOR_TARGET classification: source field present on the path but backward validation shows the producing output does not reference it
+- INVALID_FANOUT detection: per-mapping evaluation replaces blunt group-wide reclassification; only mappings without per-field evidence AND in large fan-out groups (>3 targets) are suppressed
+- Joiner prefix-stripped alignment: joiner port resolution supports Master/Detail prefix stripping in addition to same-name pass-through
+- Expression regex uses negative lookaround (`(?<![A-Za-z0-9_])...(?![A-Za-z0-9_])`) instead of `\b` word boundaries for correct matching of field names with special characters
+- Visited set includes previous-instance context to allow multi-path convergence while preventing cycles
 - Workflow task deduplication: TASK and TASKINSTANCE merged by name, TASKINSTANCE attributes take priority
 - Mapplets kept separate from mappings — their internals don't pollute the main flow graph
 - Mapping data flow and workflow control flow are separate graphs (Flow tab vs Workflows tab)

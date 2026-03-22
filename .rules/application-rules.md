@@ -42,6 +42,8 @@ For each target field, store:
 - `CONSTANT`
 - `SEQUENCE_GENERATED`
 - `NOT_CARRIED_BY_BRANCH`
+- `NOT_USED_FOR_TARGET` — source field present on path but not referenced by producing output (backward validation failure)
+- `INVALID_FANOUT` — same source field mapped to many unrelated targets without per-field evidence
 - `UNKNOWN`
 
 ---
@@ -246,7 +248,29 @@ Fields that exist in the source branch but are not selected into the branch outp
 instead of being omitted silently or mapped incorrectly. The examples you reviewed show many source fields are present in upstream sources but not propagated to the target branch. 
 
 ### Rule 8.4 — Distinguish scalar lookup outputs from composites
-If no explicit string-building expression exists, treat lookup/mapplet outputs as scalar lookup returns. The `OWNER` example demonstrates why this distinction matters. 
+If no explicit string-building expression exists, treat lookup/mapplet outputs as scalar lookup returns. The `OWNER` example demonstrates why this distinction matters.
+
+### Rule 8.5 — Field Mapping Resolution Rule
+
+Resolve lineage per target field, not per shared path:
+
+1. Start from the target field's immediate upstream output port.
+2. Inspect that output port's exact dependencies:
+   - direct input symbol
+   - explicit expression references
+   - lookup return value
+   - parameter / constant / sequence
+3. Continue tracing recursively until reaching a valid origin.
+4. Do not propagate lineage through joiners or sorters unless the field is explicitly passed or referenced by the producing output.
+5. If a source field is present on the path but not referenced by the producing output, classify it as `NOT_USED_FOR_TARGET`.
+6. If the same source field appears to map to many unrelated targets with no explicit field-level evidence, suppress those mappings as `INVALID_FANOUT`.
+7. Preserve both:
+   - **technical lineage** (all transformation hops)
+   - **business/source lineage** (deepest valid source/lookup/parameter origin)
+
+### Rule 8.6 — Backward validation
+
+After forward BFS produces mapping records, validate each by walking transformation steps backward from the target. At each step, verify the output port's expression references the input field (or the step is a same-name pass-through, FIELDDEPENDENCY-backed, or from a type that returns values without input-referencing expressions). If any step fails, reclassify as `NOT_USED_FOR_TARGET` with `LOW` confidence.
 
 ---
 
@@ -295,7 +319,10 @@ If you want the shortest usable version for your app logic, use this:
 - Only let expressions influence outputs they explicitly reference.
 - Treat lookup/mapplet outputs as scalar returns unless explicit concatenation exists. 
 - Discover filters in **Filter**, **Source Qualifier**, **lookup SQL**, **join conditions**, and **expression gating**.
-- Mark upstream fields that are not selected into the branch output as `NOT_CARRIED_BY_BRANCH`. 
+- Mark upstream fields that are not selected into the branch output as `NOT_CARRIED_BY_BRANCH`.
+- **Backward-validate** each mapping: walk transformation steps from target backward, verify producing output references the input. Classify failures as `NOT_USED_FOR_TARGET`.
+- **Suppress invalid fan-out**: if one source field maps to >3 unrelated targets without per-field expression evidence, classify as `INVALID_FANOUT`.
+- Track **dual lineage**: technical (all hops) + business (deepest valid origin: source field, lookup return, parameter, constant, sequence).
 - Build workflow order only from `WORKFLOWLINK`; keep auxiliary/unlinked tasks separate.
 
 ---
