@@ -319,6 +319,7 @@ export default function FieldMappingTable({ data, selectedMapping }) {
                           </td>
                           <td style={{ padding: "8px 14px", borderBottom: isExpanded ? "none" : "1px solid var(--border-subtle)" }}>
                             <LineageBadge type={fm.lineageType} />
+                            {fm.confidence && <ConfidenceBadge level={fm.confidence} />}
                           </td>
                         </tr>
                         {isExpanded && (
@@ -353,6 +354,14 @@ const LINEAGE_COLORS = {
   CONSTANT: { label: "CONST", color: "#fcd34d", bg: "#713f12" },
   SEQUENCE_GENERATED: { label: "SEQ", color: "#60a5fa", bg: "#1e3a5f" },
   CUSTOM_TRANSFORMATION_OUTPUT: { label: "CUSTOM", color: "#fb923c", bg: "#7c2d12" },
+  NOT_CARRIED_BY_BRANCH: { label: "NOT CARRIED", color: "#f87171", bg: "#7f1d1d" },
+  UNKNOWN: { label: "?", color: "#6b7280", bg: "#1e1e2e" },
+};
+
+const CONFIDENCE_COLORS = {
+  HIGH: { label: "H", color: "#6ee7b7", bg: "#065f46" },
+  MEDIUM: { label: "M", color: "#fcd34d", bg: "#78350f" },
+  LOW: { label: "L", color: "#fca5a5", bg: "#7f1d1d" },
   UNKNOWN: { label: "?", color: "#6b7280", bg: "#1e1e2e" },
 };
 
@@ -370,6 +379,30 @@ function LineageBadge({ type }) {
         fontWeight: 600,
         letterSpacing: "0.03em",
         whiteSpace: "nowrap",
+      }}
+    >
+      {style.label}
+    </span>
+  );
+}
+
+function ConfidenceBadge({ level }) {
+  const style = CONFIDENCE_COLORS[level] || CONFIDENCE_COLORS.UNKNOWN;
+  return (
+    <span
+      title={`Confidence: ${level}`}
+      style={{
+        fontSize: 7,
+        background: style.bg,
+        color: style.color,
+        padding: "1px 4px",
+        borderRadius: 3,
+        fontFamily: FONT_MONO,
+        fontWeight: 600,
+        letterSpacing: "0.03em",
+        whiteSpace: "nowrap",
+        marginLeft: 3,
+        opacity: 0.85,
       }}
     >
       {style.label}

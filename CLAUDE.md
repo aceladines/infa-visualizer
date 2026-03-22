@@ -30,7 +30,7 @@ Three layers:
 
 ## Informatica XML Layered Model
 
-The parser interprets PowerCenter XML as ten semantic layers. Understanding these is critical when modifying parsing or graph-building logic.
+The parser interprets PowerCenter XML as twelve semantic layers. Understanding these is critical when modifying parsing or graph-building logic.
 
 1. **Definitions layer** — `SOURCE`, `TARGET`, reusable `TRANSFORMATION`, `MAPPLET`, and `CONFIG` define metadata objects at the FOLDER level. These are definitions, *not* execution order. A physical table may appear as a `TARGET` in one mapping and as a `SOURCE` in another.
 
@@ -48,6 +48,7 @@ The parser interprets PowerCenter XML as ten semantic layers. Understanding thes
    - `CONSTANT` — literal string or number
    - `SEQUENCE_GENERATED` — from Sequence Generator transformation
    - `CUSTOM_TRANSFORMATION_OUTPUT` — from Custom/Stored Proc transformation
+   - `NOT_CARRIED_BY_BRANCH` — source field present upstream but not propagated through a custom/union branch
    - `UNKNOWN` — cannot determine (e.g., SQL override on Source Qualifier)
 
 5. **Rule for OWNER-like fields** — Do not assume an output field has compositional structure such as `<field1>_<field2>` unless an explicit `EXPRESSION` shows concatenation. If a field is returned by a lookup, describe it as a scalar lookup return value, not as a concatenation. If a field is output from a mapplet, explain which nested transformation produces it, whether it is a lookup return, pass-through, or expression-derived, and any lookup condition or filter affecting it.
@@ -64,11 +65,15 @@ The parser interprets PowerCenter XML as ten semantic layers. Understanding thes
    - Router group conditions (`GROUP` elements with filter expressions)
    Report all filter locations, not only explicit Filter transformations.
 
-8. **Session layer** — `SESSION` executes one mapping. It provides runtime settings, connection bindings, reader/writer config, commit/recovery/error behavior, and overrides. It does *not* define the core business transformation logic unless an explicit override exists.
+8. **Custom transformation and UNION rules** — Do not treat a Custom Transformation path as many-to-many lineage. For UNION-like custom transformations, preserve branch isolation. Each input group contributes only to the corresponding aligned output fields. If `FIELDDEPENDENCY` exists, use it as authoritative. If absent, infer branch alignment only by exact field name match or branch-specific suffix alignment. Never infer that every upstream field in a branch influences every downstream target field. Sorter transformations preserve row order and field identity only; they do not create new source-to-target field mappings. Expression transformations only affect outputs explicitly connected or explicitly referenced in expressions.
 
-9. **Workflow layer** — `WORKFLOW` is a directed execution graph (not a flat list). `TASK`/`TASKINSTANCE` are nodes. `WORKFLOWLINK` is the authoritative execution dependency edge. Reconstruct execution by: (a) starting from `Start`, (b) following `FROMTASK→TOTASK`, (c) preserving link conditions, (d) allowing parallel branches, (e) producing a staged topological order rather than one fake linear chain. Only tasks connected by `WORKFLOWLINK` belong in the main execution path. Utility commands or variable-assignment tasks that are defined but not linked are shown separately as auxiliary/unlinked tasks, not forced into the main path. Command tasks (truncate) are often prerequisites for downstream sessions.
+9. **Branch-level lineage rules** — Trace lineage per target field, not per shared branch path. If a source field is not selected into a branch output, classify it as `NOT_CARRIED_BY_BRANCH` rather than mapping it to unrelated target fields. In a union branch, list only the fields that are actually carried through that branch. Evidence priority: CONNECTOR > FIELDDEPENDENCY > EXPRESSION > mapplet/lookup flow > branch alignment > field name match > UNKNOWN. Confidence levels: HIGH (explicit connector chain, FIELDDEPENDENCY, direct expression), MEDIUM (branch alignment, opaque mapplet, lookup return), LOW (SQL override, indirect evidence), UNKNOWN (insufficient evidence).
 
-10. **Output rules** — For each field mapping, the system outputs the full evidence chain: target field ← producing transformation port ← upstream port ← source/lookup/parameter/constant. For each mapplet output, it explicitly identifies whether the value is concatenated/expression-built, lookup-returned, direct pass-through, or not used. For workflow execution, it outputs: main execution path, parallel branches, auxiliary/unlinked tasks, and condition on each dependency edge. If evidence is incomplete, classify as `UNKNOWN` rather than guessing.
+10. **Session layer** — `SESSION` executes one mapping. It provides runtime settings, connection bindings, reader/writer config, commit/recovery/error behavior, and overrides. It does *not* define the core business transformation logic unless an explicit override exists.
+
+11. **Workflow layer** — `WORKFLOW` is a directed execution graph (not a flat list). `TASK`/`TASKINSTANCE` are nodes (deduplicated by name, TASKINSTANCE priority). `WORKFLOWLINK` is the authoritative execution dependency edge. Reconstruct execution by: (a) starting from `Start`, (b) following `FROMTASK→TOTASK`, (c) preserving link conditions, (d) allowing parallel branches, (e) producing a staged topological order rather than one fake linear chain. Only tasks connected by `WORKFLOWLINK` belong in the main execution path. Utility commands or variable-assignment tasks that are defined but not linked are shown separately as auxiliary/unlinked tasks, not forced into the main path. Command tasks (truncate) are often prerequisites for downstream sessions.
+
+12. **Output rules** — For each field mapping, the system outputs the full evidence chain: target field ← producing transformation port ← upstream port ← source/lookup/parameter/constant. For each mapplet output, it explicitly identifies whether the value is concatenated/expression-built, lookup-returned, direct pass-through, or not used. For workflow execution, it outputs: main execution path, parallel branches, auxiliary/unlinked tasks, and condition on each dependency edge. If evidence is incomplete, classify as `UNKNOWN` rather than guessing.
 
 **Critical assumptions to avoid:**
 - Do NOT assume one session = one source table = one target table.
@@ -78,6 +83,7 @@ The parser interprets PowerCenter XML as ten semantic layers. Understanding thes
 - Do NOT assume every output field has compositional structure — if a field is returned by a lookup, it is a scalar return value unless an explicit expression proves otherwise.
 - Do NOT assume every filter appears as a Filter transformation — filters hide in SQ source filter, SQL overrides, lookup conditions, expression logic, join conditions, and router groups.
 - Do NOT assume every defined task belongs to the active execution chain — unlinked tasks are shown as auxiliary.
+- Do NOT assume a Custom Transformation path creates many-to-many lineage — preserve branch isolation.
 - Treat mappings as dataflow graphs, mapplets as reusable subgraphs, and workflows as execution graphs, not lists.
 - Instance names (in `CONNECTOR`) reference `INSTANCE.NAME`, not definition names. Classification must use `INSTANCE.TYPE` (e.g., "Source Definition", "Target Definition", "Mapplet"), not name matching against global SOURCE/TARGET lists.
 - Scoping matters: use `:scope >` when querying `TRANSFORMATION`, `INSTANCE`, `CONNECTOR` within a `MAPPING`/`MAPPLET` to avoid picking up elements from nested sub-structures.
@@ -91,8 +97,15 @@ The parser interprets PowerCenter XML as ten semantic layers. Understanding thes
 - Expression-aware port resolution: only output ports whose expression references the current input port are followed, eliminating false source attributions
 - Generator BFS: non-source-originated fields (Sequence Generator, constants) are traced by a separate BFS from instances with output but no input connectors
 - Mapplet internal tracing: when BFS hits a mapplet, it loads the mapplet definition and runs a sub-BFS to classify the actual internal lineage (Lookup return vs expression vs pass-through)
+- Mapplet-internal BFS uses the same expression-aware port resolution as the main BFS (prevents false lineage through mapplet internals)
 - Filter discovery across 7 locations: Filter Condition, Source Filter, Sql Query, Lookup Sql Override, Lookup Source Filter, Join Condition, Router GROUP conditions
 - Router GROUP parsing: GROUP elements and group attribute on TRANSFORMFIELD capture router conditions per output group
+- FIELDDEPENDENCY parsing for custom/union transformations: explicit port-to-port dependencies extracted from XML
+- Branch-preserving lineage through custom/union: uses FIELDDEPENDENCY when available, otherwise group/suffix alignment (not many-to-many)
+- Sorter lineage transparency: sorters only pass through same-named ports (field identity preserved, no new mappings created)
+- Confidence level classification (HIGH/MEDIUM/LOW/UNKNOWN) on each field mapping record
+- Evidence chain tracking: human-readable backward chain string on each mapping record
+- Workflow task deduplication: TASK and TASKINSTANCE merged by name, TASKINSTANCE attributes take priority
 - Mapplets kept separate from mappings — their internals don't pollute the main flow graph
 - Mapping data flow and workflow control flow are separate graphs (Flow tab vs Workflows tab)
 - Workflow auxiliary tasks: orphan tasks not connected via WORKFLOWLINK are displayed separately as "Auxiliary / Unlinked" instead of being forced into the main execution path
