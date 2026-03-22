@@ -142,54 +142,22 @@ export default function NodeDetailDrawer({ node, data, onClose }) {
           </div>
         )}
 
-        {/* Fields / Ports table */}
+        {/* Fields / Ports list */}
         {fields.length > 0 && (
           <div>
             <SectionLabel>{fields.length} Fields / Ports</SectionLabel>
-            <div style={{ border: "1px solid var(--border-primary)", borderRadius: 8, overflow: "hidden" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11, fontFamily: FONT_MONO, tableLayout: "fixed" }}>
-                <colgroup>
-                  <col style={{ width: "6%" }} />
-                  <col style={{ width: "22%" }} />
-                  <col style={{ width: "14%" }} />
-                  <col style={{ width: "10%" }} />
-                  <col style={{ width: "16%" }} />
-                  <col style={{ width: "32%" }} />
-                </colgroup>
-                <thead>
-                  <tr style={{ background: "var(--bg-table-header)" }}>
-                    {(isTable
-                      ? ["#", "Field", "Type", "Prec", "Key", "Null"]
-                      : ["#", "Port", "Type", "Prec", "Port Type", "Expression"]
-                    ).map((h) => <TH key={h}>{h}</TH>)}
-                  </tr>
-                </thead>
-                <tbody>
-                  {fields.map((f, fi) => (
-                    <tr key={fi} style={{ background: fi % 2 === 0 ? "var(--bg-table-even)" : "var(--bg-table-odd)" }}>
-                      <TD muted>{f.fieldNumber || fi + 1}</TD>
-                      <TD bold title={f.name}>{f.name}</TD>
-                      <TD title={f.datatype} style={{ color: colors.text }}>{f.datatype || "—"}</TD>
-                      <TD muted>{f.precision ? `${f.precision}${f.scale && f.scale !== "0" ? `,${f.scale}` : ""}` : "—"}</TD>
-                      {isTable ? (
-                        <>
-                          <TD>{f.keyType && f.keyType !== "NOT A KEY" ? <Badge bg="#78350f" color="#fcd34d" small>{f.keyType}</Badge> : "—"}</TD>
-                          <TD style={{ color: f.nullable === "NOTNULL" ? "#f87171" : "var(--text-secondary)", fontSize: 10 }}>{f.nullable === "NOTNULL" ? "NOT NULL" : f.nullable || "—"}</TD>
-                        </>
-                      ) : (
-                        <>
-                          <TD>{f.porttype ? <Badge bg={f.porttype.includes("OUTPUT") ? typeColors.transform.badge : "var(--border-primary)"} color={f.porttype.includes("OUTPUT") ? typeColors.transform.text : "var(--text-secondary)"} small>{f.porttype}</Badge> : "—"}</TD>
-                          <TD style={{ color: "#f59e0b", fontSize: 10 }}>
-                            {f.expression ? (
-                              <ExpandableText text={f.expression} onExpand={() => setViewerText({ title: `${f.name} — Expression`, text: f.expression })} />
-                            ) : "—"}
-                          </TD>
-                        </>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              {fields.map((f, fi) => (
+                <FieldCard
+                  key={fi}
+                  field={f}
+                  index={fi}
+                  isTable={isTable}
+                  colors={colors}
+                  typeColors={typeColors}
+                  onViewExpression={(name, expr) => setViewerText({ title: `${name} — Expression`, text: expr })}
+                />
+              ))}
             </div>
           </div>
         )}
@@ -198,27 +166,20 @@ export default function NodeDetailDrawer({ node, data, onClose }) {
         {inbound.length > 0 && (
           <div style={{ marginTop: 16 }}>
             <SectionLabel>Inbound Field Connections ({inbound.length})</SectionLabel>
-            <div style={{ border: "1px solid var(--border-primary)", borderRadius: 8, overflow: "hidden" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10, fontFamily: FONT_MONO }}>
-                <thead>
-                  <tr style={{ background: "var(--bg-table-header)" }}>
-                    {["From Instance", "From Field", "→ To Field"].map((h) => <TH key={h}>{h}</TH>)}
-                  </tr>
-                </thead>
-                <tbody>
-                  {inbound.slice(0, 50).map((c, ci) => (
-                    <tr key={ci} style={{ background: ci % 2 === 0 ? "var(--bg-table-even)" : "var(--bg-table-odd)" }}>
-                      <TD style={{ color: "#10b981" }}>{c.fromInstance}</TD>
-                      <TD style={{ color: typeColors.source.text }}>{c.fromField}</TD>
-                      <TD style={{ color: typeColors.target.text }}>{c.toField}</TD>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {inbound.length > 50 && (
-                <div style={{ padding: "6px 10px", fontSize: 9, color: "var(--text-muted)", textAlign: "center", fontFamily: FONT_MONO }}>+{inbound.length - 50} more</div>
-              )}
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              {inbound.slice(0, 50).map((c, ci) => (
+                <div key={ci} style={{ display: "flex", alignItems: "flex-start", gap: 6, padding: "6px 10px", background: ci % 2 === 0 ? "var(--bg-table-even)" : "var(--bg-table-odd)", borderRadius: 6, border: "1px solid var(--border-subtle)", fontSize: 10, fontFamily: FONT_MONO, flexWrap: "wrap" }}>
+                  <span style={{ color: "#10b981", wordBreak: "break-all" }}>{c.fromInstance}</span>
+                  <span style={{ color: "var(--text-muted)" }}>.</span>
+                  <span style={{ color: typeColors.source.text, wordBreak: "break-all" }}>{c.fromField}</span>
+                  <span style={{ color: "var(--text-muted)" }}>→</span>
+                  <span style={{ color: typeColors.target.text, wordBreak: "break-all" }}>{c.toField}</span>
+                </div>
+              ))}
             </div>
+            {inbound.length > 50 && (
+              <div style={{ padding: "6px 10px", fontSize: 9, color: "var(--text-muted)", textAlign: "center", fontFamily: FONT_MONO }}>+{inbound.length - 50} more</div>
+            )}
           </div>
         )}
       </div>
@@ -262,7 +223,7 @@ function ConnectionBox({ label, count, color, bgColor, nodes }) {
       {nodes.length > 0 && (
         <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 4 }}>
           {nodes.map((n) => (
-            <span key={n} style={{ fontSize: 9, background: bgColor, color, padding: "2px 6px", borderRadius: 3, fontFamily: FONT_MONO }}>{n.length > 22 ? n.slice(0, 20) + "…" : n}</span>
+            <span key={n} style={{ fontSize: 9, background: bgColor, color, padding: "2px 6px", borderRadius: 3, fontFamily: FONT_MONO, wordBreak: "break-all" }}>{n}</span>
           ))}
         </div>
       )}
@@ -276,15 +237,31 @@ function SectionLabel({ children }) {
   );
 }
 
-function TH({ children }) {
+function FieldCard({ field: f, index: fi, isTable, colors, typeColors, onViewExpression }) {
+  const precStr = f.precision ? `${f.precision}${f.scale && f.scale !== "0" ? `,${f.scale}` : ""}` : null;
   return (
-    <th style={{ padding: "7px 10px", textAlign: "left", color: "var(--text-muted)", fontWeight: 500, borderBottom: "1px solid var(--border-primary)", fontSize: 8, textTransform: "uppercase", letterSpacing: "0.06em", whiteSpace: "nowrap" }}>{children}</th>
-  );
-}
-
-function TD({ children, muted, bold, style = {}, title }) {
-  return (
-    <td title={title} style={{ padding: "5px 10px", borderBottom: "1px solid var(--border-subtle)", color: muted ? "var(--text-muted)" : bold ? "var(--text-primary)" : undefined, fontWeight: bold ? 500 : undefined, overflow: "hidden", textOverflow: "ellipsis", ...style }}>{children}</td>
+    <div style={{ padding: "8px 10px", background: fi % 2 === 0 ? "var(--bg-table-even)" : "var(--bg-table-odd)", borderRadius: 6, border: "1px solid var(--border-subtle)" }}>
+      {/* Row 1: number + name + type badges */}
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 6, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 9, color: "var(--text-muted)", fontFamily: FONT_MONO, minWidth: 18, flexShrink: 0 }}>#{f.fieldNumber || fi + 1}</span>
+        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", fontFamily: FONT_MONO, wordBreak: "break-all" }}>{f.name}</span>
+        {f.datatype && <Badge bg={colors.badge} color={colors.text} small>{f.datatype}{precStr ? `(${precStr})` : ""}</Badge>}
+        {isTable ? (
+          <>
+            {f.keyType && f.keyType !== "NOT A KEY" && <Badge bg="#78350f" color="#fcd34d" small>{f.keyType}</Badge>}
+            {f.nullable === "NOTNULL" && <Badge bg="#7f1d1d" color="#fca5a5" small>NOT NULL</Badge>}
+          </>
+        ) : (
+          f.porttype && <Badge bg={f.porttype.includes("OUTPUT") ? typeColors.transform.badge : "var(--border-primary)"} color={f.porttype.includes("OUTPUT") ? typeColors.transform.text : "var(--text-secondary)"} small>{f.porttype}</Badge>
+        )}
+      </div>
+      {/* Row 2: expression (for transforms) */}
+      {!isTable && f.expression && (
+        <div style={{ marginTop: 4, fontSize: 10, fontFamily: FONT_MONO, color: "#f59e0b", lineHeight: 1.4 }}>
+          <ExpandableText text={f.expression} onExpand={() => onViewExpression(f.name, f.expression)} />
+        </div>
+      )}
+    </div>
   );
 }
 
